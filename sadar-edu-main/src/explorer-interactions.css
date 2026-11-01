@@ -1,0 +1,19 @@
+.explorer-workspace{position:relative;display:block;height:calc(100dvh - 208px);min-height:540px;overflow:hidden}
+.explorer-workspace>.explorer-map{height:100%;width:100%}
+.explorer-map>.map-context,.explorer-map>.map-legend{z-index:2;pointer-events:none}
+.explorer-toggle{position:absolute;top:16px;z-index:20;border:1px solid var(--border);background:#fff;border-radius:8px;padding:12px 16px;color:var(--ink);font-weight:600;cursor:pointer;box-shadow:0 3px 12px #17304212}
+.filter-open{left:12px}.list-open{right:12px}
+.explorer-workspace .map-context{left:50%;transform:translateX(-50%)}
+.slide-panel{max-width:calc(100% - 16px);will-change:transform;contain:layout paint}
+.slide-panel-content{min-height:0;overscroll-behavior:contain;scrollbar-gutter:stable}
+.explorer-workspace>.empty-results{position:absolute;right:0;top:80px;bottom:0;width:min(384px,100%);overflow:auto}
+.explorer-workspace>.loading-map,.explorer-workspace>.data-error-area{height:100%}
+.explorer-workspace>.skeleton-list{position:absolute;right:0;top:72px;width:32%;bottom:0}
+.explorer-workspace>.map-error-area{height:100%;width:60%}
+.explorer-workspace>.map-error-list{position:absolute;right:0;top:72px;bottom:0;width:40%;overflow:auto}
+.explorer-terrain{transition:transform 250ms ease}
+.figma-explorer button:focus-visible,.figma-explorer input:focus-visible{outline:3px solid #2c6e8e;outline-offset:3px}
+.school-card{transition:box-shadow 180ms ease,transform 180ms ease}.school-card:hover{box-shadow:0 6px 18px #17304218;transform:translateY(-2px)}
+.explorer-heading>div:first-child{flex:1;min-width:0}.explorer-search-wrap{flex-shrink:0}
+@media(max-width:900px){.explorer-workspace{height:calc(100dvh - 220px);min-height:540px}.explorer-workspace .map-context{top:76px;width:300px}.map-error-card,.data-error-card,.loading-notice{max-width:calc(100% - 32px)}.explorer-workspace>.map-error-area{width:100%}.explorer-workspace>.map-error-list{position:relative;width:100%}.slide-panel .school-cards{height:auto;grid-template-columns:1fr}.map-attribution{max-width:100%}.explorer-search-wrap{width:100%}}
+@media(prefers-reduced-motion:reduce){.slide-panel,.explorer-terrain,.school-card{transition:none!important}}
