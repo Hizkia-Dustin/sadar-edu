@@ -9,7 +9,8 @@
     "test": "node --test test/*.test.js",
     "db:init": "node src/scripts/initDb.js",
     "seed:users": "node src/scripts/seedUsers.js",
-    "seed:demo": "node src/scripts/seedDemo.js"
+    "seed:demo": "node src/scripts/seedDemo.js",
+    "demo:hapus": "node src/scripts/hapusDemo.js"
   },
   "keywords": [
     "nodejs",

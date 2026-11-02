@@ -18,6 +18,7 @@ npm install
 npm run db:init               # menjalankan schema.sql (aman diulang, juga untuk DB lama)
 npm run seed:users            # akun Operator & Stakeholder awal (kredensial dari .env)
 npm run seed:demo             # OPSIONAL: data demo SINTETIS Kab. Bogor
+npm run demo:hapus            # hapus data demo sebelum mengunggah data asli
 npm run dev                   # http://localhost:5000
 npm test                      # tes logika analisis, parser, role, simulasi
 ```
@@ -39,7 +40,7 @@ Server saat start otomatis mengisi master `role` dan katalog `indikator` (bobot 
 |---|---|---|
 | `wilayah` | GeoJSON poligon | `kode_bps` (alias `KDCPUM`,`KDKEC`), `nama_wilayah` (alias `WADMKC`,`NAMOBJ`), `level_wilayah` (default `Kecamatan`), `luas_km2` opsional |
 | `kependudukan` | CSV/JSON | `kode_bps`, `tahun`, `jumlah_penduduk`, `penduduk_usia_smp` (13–15 th) |
-| `sekolah` | GeoJSON titik / CSV | `npsn`, `nama_sekolah`, `status_sekolah`, `alamat`, `latitude`, `longitude`; opsional `jumlah_siswa`, `jumlah_guru`, `jumlah_rombel`, `jumlah_ruang_kelas`, `tahun`, `akreditasi` |
+| `sekolah` | GeoJSON titik / CSV | `npsn`, `nama_sekolah` (atau `nama`), `status_sekolah` (atau `status`), `latitude`/`longitude` (atau geometri Point); opsional `alamat`, `akreditasi` (A/B/C; selain itu dikosongkan), `kecamatan`, `kabupaten`, `desaKelurahan`, `jumlahSiswa`/`jumlah_siswa`, `jumlahGuru`, `jumlah_rombel`, `ruangKelas`, `ruangKelasBaik/RusakRingan/RusakSedang/RusakBerat`, `tahun`. Penamaan camelCase dan snake_case sama-sama dikenali |
 | `statistik` | CSV/JSON | `npsn`, `tahun`, `jumlah_siswa`, `jumlah_guru`, `jumlah_rombel`, `jumlah_ruang_kelas` |
 | `jalan` | GeoJSON garis | `nama`, `kelas_jalan` opsional |
 | `risiko_bencana` | GeoJSON poligon | `level` 1–5 (atau Rendah/Sedang/Tinggi/Sangat Tinggi) |
@@ -49,6 +50,16 @@ Server saat start otomatis mengisi master `role` dan katalog `indikator` (bobot 
 `crs` default 4326; isi kode EPSG lain bila berkas berada di CRS berbeda (dikonversi server). CSV boleh berpemisah koma atau titik-koma. Kode `kode_bps` pada `kependudukan` harus sama dengan batas wilayah. Berkas > ±45 MB: potong ke area studi & sederhanakan geometri di QGIS dulu.
 
 Setiap baris data tertaut ke dataset asalnya sehingga dataset dapat **dinonaktifkan** (tidak ikut analisis/peta) atau **dihapus beserta datanya**. Setelah perubahan, jalankan hitung ulang.
+
+### Data kosong ≠ nol
+
+Pada data sekolah nyata banyak nilai belum terisi (mis. `ruangKelas: null`). Importer menyimpannya sebagai **kosong (NULL)**, dan nilai `0` pada siswa/guru/ruang kelas ikut dianggap kosong (dapat dimatikan dengan `nol_dianggap_kosong: false`). Mesin analisis lalu: (1) menghitung rasio siswa/kelas hanya dari sekolah yang ruang kelasnya tercatat, (2) rasio siswa/guru hanya dari sekolah yang gurunya tercatat, (3) menganggap kapasitas sekolah tanpa data ruang kelas setara jumlah siswanya (netral), dan (4) mencatat kelengkapan di diagnosis. Tanpa ini, kecamatan dengan data bolong akan tampak lebih padat daripada kenyataannya.
+
+### Sekolah sebelum batas wilayah tersedia
+
+Dataset `sekolah` dapat diunggah lebih dulu. Peta publik tetap menampilkan sekolah dan filter kecamatan memakai nama kecamatan dari data sumber. Analisis (skor, blank spot, kandidat) baru berjalan setelah dataset `wilayah` dan `kependudukan` ada; sekolah otomatis terhubung ke kecamatan lewat spatial join saat batas wilayah diunggah.
+
+Sekolah Kota Bogor ikut tersimpan (`kabupaten_kota`) dan ikut menghitung jangkauan layanan kecamatan Kabupaten di sekitarnya, tetapi tidak masuk peringkat selama polygon kecamatan Kota Bogor tidak diunggah sebagai level `Kecamatan`.
 
 ## Metodologi (ringkas)
 

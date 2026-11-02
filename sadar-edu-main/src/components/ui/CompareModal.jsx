@@ -87,7 +87,7 @@ export default function CompareModal() {
                   </td>
                   {comparedSchools.map((s) => (
                     <td key={s.id} className="p-3">
-                      {s.jumlahSiswa} siswa
+                      {s.jumlahSiswa ?? "-"} siswa
                     </td>
                   ))}
                 </tr>
@@ -107,7 +107,7 @@ export default function CompareModal() {
                   </td>
                   {comparedSchools.map((s) => (
                     <td key={s.id} className="p-3">
-                      {s.ruangKelas} RKB
+                      {s.ruangKelas ?? "-"} RKB
                     </td>
                   ))}
                 </tr>

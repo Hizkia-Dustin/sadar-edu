@@ -48,6 +48,7 @@ export default function DiagnosisPanel({ wilayahId, onSimulasi }) {
       </div>
 
       {p.diagnosis && <InfoBox tone="emerald">{p.diagnosis}</InfoBox>}
+      {(rek.catatan_data || []).map((c) => <InfoBox key={c} tone="amber">⚠ {c}</InfoBox>)}
 
       <section>
         <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Kondisi layanan</h4>

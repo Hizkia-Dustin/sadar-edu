@@ -126,6 +126,21 @@ export default function EksplorasiPeta() {
     if (selectedWilayahId) setSelectedDistrict(String(selectedWilayahId));
   }, [selectedWilayahId]);
 
+  // Opsi kecamatan: dari poligon wilayah bila sudah ada; bila belum, dari nama kecamatan pada data sekolah
+  const kecamatanOptions = useMemo(() => {
+    if (kecamatan.length) return kecamatan;
+    const groups = new Map();
+    sekolah.features.forEach((f) => {
+      const n = f.properties.kecamatan;
+      const c = f.geometry && f.geometry.coordinates;
+      if (!n || !c) return;
+      const g = groups.get(n) || { id: `txt:${n}`, name: n, bbox: [c[0], c[1], c[0], c[1]] };
+      g.bbox = [Math.min(g.bbox[0], c[0]), Math.min(g.bbox[1], c[1]), Math.max(g.bbox[2], c[0]), Math.max(g.bbox[3], c[1])];
+      groups.set(n, g);
+    });
+    return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, "id"));
+  }, [kecamatan, sekolah]);
+
   // List sekolah SMP yang terfilter
   const filteredSchools = useMemo(() => {
     const kw = searchKeyword.toLowerCase();
@@ -133,7 +148,11 @@ export default function EksplorasiPeta() {
       const p = f.properties;
       const matchKeyword = (p.nama || "").toLowerCase().includes(kw) || (p.npsn && String(p.npsn).includes(searchKeyword));
       const matchStatus = filterStatus === "all" || p.status === filterStatus;
-      const matchDistrict = !selectedDistrict || String(p.idWilayah) === String(selectedDistrict);
+      const matchDistrict =
+        !selectedDistrict ||
+        (String(selectedDistrict).startsWith("txt:")
+          ? p.kecamatan === String(selectedDistrict).slice(4)
+          : String(p.idWilayah) === String(selectedDistrict));
       return matchKeyword && matchStatus && matchDistrict;
     });
   }, [sekolah, searchKeyword, filterStatus, selectedDistrict]);
@@ -142,8 +161,8 @@ export default function EksplorasiPeta() {
 
   const pilihKecamatan = (districtId) => {
     setSelectedDistrict(districtId);
-    setSelectedWilayahId(districtId || null);
-    const target = kecamatan.find((d) => String(d.id) === String(districtId));
+    setSelectedWilayahId(districtId && !String(districtId).startsWith("txt:") ? districtId : null);
+    const target = kecamatanOptions.find((d) => String(d.id) === String(districtId));
     if (target && target.bbox) flyToBounds(target.bbox);
   };
 
@@ -321,7 +340,7 @@ export default function EksplorasiPeta() {
                       className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#1F6F5F]/30 focus:border-[#1F6F5F] cursor-pointer shadow-sm appearance-none transition-all"
                     >
                       <option value="">Semua Kecamatan</option>
-                      {kecamatan.map((d) => (
+                      {kecamatanOptions.map((d) => (
                         <option key={d.id} value={d.id}>
                           Kecamatan {d.name}
                         </option>
@@ -378,7 +397,7 @@ export default function EksplorasiPeta() {
                     Jalan Pintas Wilayah
                   </label>
                   <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pr-1">
-                    {kecamatan.map((d) => (
+                    {kecamatanOptions.map((d) => (
                       <button
                         key={d.id}
                         onClick={() => pilihKecamatan(d.id)}
@@ -501,7 +520,7 @@ export default function EksplorasiPeta() {
                               NPSN: {item.properties.npsn} • Akreditasi {item.properties.akreditasi || "-"}
                             </p>
                             <p className="text-[11px] text-slate-500">
-                              {item.properties.jumlahSiswa} Siswa • {item.properties.ruangKelas} Kelas
+                              {fmtNum(item.properties.jumlahSiswa)} Siswa • {fmtNum(item.properties.ruangKelas)} Kelas
                             </p>
                           </div>
 
@@ -702,7 +721,7 @@ export default function EksplorasiPeta() {
                       {selectedSchoolDetail.properties.nama}
                     </h2>
                     <p className="text-xs text-white/80 mt-0.5">
-                      {selectedSchoolDetail.properties.kecamatan ? `Kec. ${selectedSchoolDetail.properties.kecamatan}` : "Kabupaten Bogor"} • Akreditasi {selectedSchoolDetail.properties.akreditasi || "-"}
+                      {[selectedSchoolDetail.properties.desa, selectedSchoolDetail.properties.kecamatan && `Kec. ${selectedSchoolDetail.properties.kecamatan}`, selectedSchoolDetail.properties.kabupatenKota].filter(Boolean).join(", ") || "Bogor"} • Akreditasi {selectedSchoolDetail.properties.akreditasi || "-"}
                     </p>
                   </div>
                 </div>
@@ -719,19 +738,19 @@ export default function EksplorasiPeta() {
                 <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-center">
                   <span className="text-xs text-slate-400 block font-medium">Peserta Didik</span>
                   <strong className="text-lg font-bold text-[#1F6F5F]">
-                    <AnimatedCounter to={selectedSchoolDetail.properties.jumlahSiswa} />
+                    {selectedSchoolDetail.properties.jumlahSiswa === null ? "-" : <AnimatedCounter to={selectedSchoolDetail.properties.jumlahSiswa} />}
                   </strong>
                 </div>
                 <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-center">
                   <span className="text-xs text-slate-400 block font-medium">Tenaga Pendidik</span>
                   <strong className="text-lg font-bold text-[#1F6F5F]">
-                    <AnimatedCounter to={selectedSchoolDetail.properties.jumlahGuru} />
+                    {selectedSchoolDetail.properties.jumlahGuru === null ? "-" : <AnimatedCounter to={selectedSchoolDetail.properties.jumlahGuru} />}
                   </strong>
                 </div>
                 <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-center">
                   <span className="text-xs text-slate-400 block font-medium">Ruang Kelas</span>
                   <strong className="text-lg font-bold text-[#1F6F5F]">
-                    <AnimatedCounter to={selectedSchoolDetail.properties.ruangKelas} />
+                    {selectedSchoolDetail.properties.ruangKelas === null ? "-" : <AnimatedCounter to={selectedSchoolDetail.properties.ruangKelas} />}
                   </strong>
                 </div>
                 <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-center">
@@ -741,6 +760,23 @@ export default function EksplorasiPeta() {
                   </strong>
                 </div>
               </div>
+
+              {[selectedSchoolDetail.properties.kelasBaik, selectedSchoolDetail.properties.kelasRusakRingan, selectedSchoolDetail.properties.kelasRusakSedang, selectedSchoolDetail.properties.kelasRusakBerat].some((v) => v !== null) && (
+                <div className="bg-white border border-slate-200 rounded-2xl p-4">
+                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Kondisi Ruang Kelas</h4>
+                  <div className="grid grid-cols-4 gap-2 text-center">
+                    {[["Baik", selectedSchoolDetail.properties.kelasBaik, "text-emerald-700 bg-emerald-50"],
+                      ["Rusak ringan", selectedSchoolDetail.properties.kelasRusakRingan, "text-yellow-700 bg-yellow-50"],
+                      ["Rusak sedang", selectedSchoolDetail.properties.kelasRusakSedang, "text-orange-700 bg-orange-50"],
+                      ["Rusak berat", selectedSchoolDetail.properties.kelasRusakBerat, "text-red-700 bg-red-50"]].map(([label, v, cls]) => (
+                      <div key={label} className={`rounded-xl py-2 ${cls}`}>
+                        <strong className="block text-base">{fmtNum(v)}</strong>
+                        <span className="text-[10px] font-medium">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <SchoolExtra school={selectedSchoolDetail} onOpen={(f) => openSchoolDetail(mapSchoolFeature(f))} />
 
@@ -757,6 +793,12 @@ export default function EksplorasiPeta() {
                   <span className="text-slate-500">NPSN</span>
                   <strong className="text-slate-800">{selectedSchoolDetail.properties.npsn}</strong>
                 </div>
+                {selectedSchoolDetail.properties.desa && (
+                  <div className="flex justify-between text-xs py-1 border-b border-slate-200/60">
+                    <span className="text-slate-500">Desa / Kelurahan</span>
+                    <strong className="text-slate-800">{selectedSchoolDetail.properties.desa}</strong>
+                  </div>
+                )}
                 <div className="flex justify-between text-xs py-1 border-b border-slate-200/60">
                   <span className="text-slate-500">Status Pengelolaan</span>
                   <strong className="text-slate-800">{selectedSchoolDetail.properties.status}</strong>

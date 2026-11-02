@@ -6,7 +6,7 @@ import { ErrorBox, InfoBox, Spinner, inputCls, btnPrimary, btnGhost } from "../u
 // Petunjuk format per kategori (nama kolom/properti yang dikenali server)
 const PETUNJUK = {
   wilayah: "GeoJSON poligon batas wilayah. Properti: kode_bps (atau KDCPUM/KDKEC), nama_wilayah (atau WADMKC/NAMOBJ), level_wilayah (default Kecamatan). Wajib dimuat sebelum data sekolah agar kecamatan sekolah terisi.",
-  sekolah: "GeoJSON titik atau CSV. Kolom: npsn, nama_sekolah, status_sekolah (Negeri/Swasta), alamat, latitude, longitude. Opsional: jumlah_siswa, jumlah_guru, jumlah_rombel, jumlah_ruang_kelas, tahun, akreditasi.",
+  sekolah: "GeoJSON titik atau CSV. Dikenali: npsn, nama (nama_sekolah), status, kecamatan, kabupaten, desaKelurahan, akreditasi, jumlahSiswa, jumlahGuru, ruangKelas, ruangKelasBaik/RusakRingan/RusakSedang/RusakBerat (penamaan snake_case juga bisa). Nilai kosong/0 pada siswa, guru, ruang kelas dibaca sebagai 'belum diisi'.",
   statistik: "CSV/JSON per sekolah. Kolom: npsn, tahun, jumlah_siswa, jumlah_guru, jumlah_rombel, jumlah_ruang_kelas.",
   kependudukan: "CSV/JSON per kecamatan. Kolom: kode_bps (sama dengan batas wilayah), tahun, jumlah_penduduk, penduduk_usia_smp (13–15 tahun).",
   jalan: "GeoJSON garis (LineString/MultiLineString). Properti opsional: nama, kelas_jalan.",
@@ -23,7 +23,7 @@ export default function DatasetTab({ onChanged }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(null);
-  const [form, setForm] = useState({ kategori: "wilayah", nama_dataset: "", sumber: "", tahun: new Date().getFullYear(), crs: 4326 });
+  const [form, setForm] = useState({ kategori: "wilayah", nama_dataset: "", sumber: "", tahun: new Date().getFullYear(), crs: 4326, nolKosong: true });
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [hasil, setHasil] = useState(null);
@@ -73,6 +73,7 @@ export default function DatasetTab({ onChanged }) {
         tahun: Number(form.tahun) || undefined,
         crs: Number(form.crs) || 4326,
         format: isCsv ? "CSV" : "GeoJSON",
+        nol_dianggap_kosong: form.nolKosong,
         data: text,
       });
       setHasil(res);
@@ -138,10 +139,16 @@ export default function DatasetTab({ onChanged }) {
             <input id="sm" className={inputCls} value={form.sumber} onChange={set("sumber")} placeholder="BPS / BIG / Disdik" />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-slate-600 mb-1" htmlFor="th">Tahun data</label>
+            <label className="block text-[11px] font-semibold text-slate-600 mb-1" htmlFor="th">Tahun data (tahun statistik)</label>
             <input id="th" type="number" className={inputCls} value={form.tahun} onChange={set("tahun")} />
           </div>
         </div>
+        {(form.kategori === "sekolah" || form.kategori === "statistik") && (
+          <label className="flex items-start gap-2 text-[11px] text-slate-600">
+            <input type="checkbox" className="mt-0.5 accent-[#1F6F5F]" checked={form.nolKosong} onChange={(e) => setForm({ ...form, nolKosong: e.target.checked })} />
+            <span>Anggap nilai 0 pada siswa/guru/ruang kelas sebagai “belum diisi” (disarankan untuk data Dapodik).</span>
+          </label>
+        )}
         {def && def.format !== "tabel" && (
           <div>
             <label className="block text-[11px] font-semibold text-slate-600 mb-1" htmlFor="crs">Kode EPSG koordinat berkas</label>

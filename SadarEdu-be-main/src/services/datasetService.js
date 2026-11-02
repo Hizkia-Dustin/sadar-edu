@@ -113,11 +113,71 @@ function toPointRecords(data) {
 }
 
 const STAT_ALIASES = {
-  jumlah_siswa: ['jumlah_siswa', 'siswa', 'peserta_didik'],
-  jumlah_guru: ['jumlah_guru', 'guru', 'tenaga_pendidik'],
-  jumlah_rombel: ['jumlah_rombel', 'rombel'],
-  jumlah_ruang_kelas: ['jumlah_ruang_kelas', 'ruang_kelas', 'ruang_kelas_total', 'kelas'],
+  jumlah_siswa: ['jumlah_siswa', 'jumlahSiswa', 'siswa', 'peserta_didik'],
+  jumlah_guru: ['jumlah_guru', 'jumlahGuru', 'guru', 'tenaga_pendidik'],
+  jumlah_rombel: ['jumlah_rombel', 'jumlahRombel', 'rombel'],
+  jumlah_ruang_kelas: ['jumlah_ruang_kelas', 'ruangKelas', 'ruang_kelas', 'ruang_kelas_total', 'kelas'],
 };
+const KONDISI_ALIASES = {
+  ruang_kelas_baik: ['ruang_kelas_baik', 'ruangKelasBaik'],
+  ruang_kelas_rusak_ringan: ['ruang_kelas_rusak_ringan', 'ruangKelasRusakRingan'],
+  ruang_kelas_rusak_sedang: ['ruang_kelas_rusak_sedang', 'ruangKelasRusakSedang'],
+  ruang_kelas_rusak_berat: ['ruang_kelas_rusak_berat', 'ruangKelasRusakBerat'],
+};
+// Kolom yang tidak mungkin bernilai 0 untuk sekolah aktif: 0 hampir pasti berarti "belum diisi"
+const KOLOM_NOL_KOSONG = ['jumlah_siswa', 'jumlah_guru', 'jumlah_ruang_kelas'];
+
+/** Ambil statistik dari satu baris/properti. nolKosong: nilai 0 pada kolom wajib dianggap kosong (null). */
+function bacaStatistik(row, { nolKosong = true } = {}) {
+  const vals = {};
+  Object.entries({ ...STAT_ALIASES, ...KONDISI_ALIASES }).forEach(([k, aliases]) => {
+    let v = num(pick(row, aliases));
+    if (v !== null && v < 0) v = null;
+    if (nolKosong && v === 0 && KOLOM_NOL_KOSONG.includes(k)) v = null;
+    vals[k] = v;
+  });
+  return vals;
+}
+
+/** Akreditasi hanya A/B/C; "Tidak diisi", "TT", dsb. menjadi null */
+const normAkreditasi = (v) => {
+  const t = String(v === undefined || v === null ? '' : v).trim().toUpperCase();
+  return ['A', 'B', 'C'].includes(t) ? t : null;
+};
+/** "Kec. Babakan Madang" -> "Babakan Madang" */
+const stripPrefix = (v) => (v === undefined || v === null ? null : String(v).replace(/^\s*(kec\.?|kecamatan|kab\.?|kabupaten)\s+/i, '').trim() || null);
+
+/**
+ * Normalisasi satu rekaman sekolah (fungsi murni, dapat diuji).
+ * Mengembalikan { ok:true, row } atau { ok:false, alasan }.
+ */
+function normalisasiSekolah(rec, { tahunDefault, nolKosong = true } = {}) {
+  const { props, lng, lat } = rec;
+  const nama = pick(props, ['nama_sekolah', 'nama', 'namobj', 'nm_sekolah']);
+  const npsn = pick(props, ['npsn', 'kode_sekolah']);
+  if (!nama || !npsn || lng === null || lat === null || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    return { ok: false, alasan: 'butuh npsn, nama, dan koordinat (latitude/longitude) yang valid.' };
+  }
+  const alamat = pick(props, ['alamat', 'alamat_jalan']);
+  return {
+    ok: true,
+    row: {
+      npsn: String(npsn).trim(),
+      nama: String(nama).trim().slice(0, 160),
+      status: String(pick(props, ['status_sekolah', 'status']) || 'Negeri').slice(0, 20),
+      alamat: alamat ? String(alamat) : null,
+      jenjang: String(pick(props, ['jenjang', 'bentuk_pendidikan']) || 'SMP').slice(0, 20),
+      akreditasi: normAkreditasi(pick(props, ['akreditasi'])),
+      kabupaten_kota: pick(props, ['kabupaten', 'kab_kota', 'kabupaten_kota']) ? String(pick(props, ['kabupaten', 'kab_kota', 'kabupaten_kota'])).trim().slice(0, 40) : null,
+      kecamatan_asal: stripPrefix(pick(props, ['kecamatan', 'nama_kecamatan'])),
+      desa_kelurahan: pick(props, ['desaKelurahan', 'desa_kelurahan', 'desa', 'kelurahan']) ? String(pick(props, ['desaKelurahan', 'desa_kelurahan', 'desa', 'kelurahan'])).trim().slice(0, 100) : null,
+      tahun: parseInt(pick(props, ['tahun']), 10) || tahunDefault,
+      statistik: bacaStatistik(props, { nolKosong }),
+      lng,
+      lat,
+    },
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Impor per kategori (dijalankan dalam transaksi)
@@ -187,25 +247,26 @@ async function importWilayah(client, ctx) {
   return out;
 }
 
-async function upsertStatistik(client, idSekolah, tahun, row, idDataset) {
-  const vals = {};
-  let ada = false;
-  Object.entries(STAT_ALIASES).forEach(([k, aliases]) => {
-    const v = num(pick(row, aliases));
-    vals[k] = v;
-    if (v !== null) ada = true;
-  });
+async function upsertStatistik(client, idSekolah, tahun, vals, idDataset) {
+  const ada = Object.values(vals).some((v) => v !== null && v !== undefined);
   if (!ada) return false;
   await client.query(
-    `INSERT INTO statistik_pendidikan (id_sekolah, tahun, jumlah_siswa, jumlah_guru, jumlah_rombel, jumlah_ruang_kelas, id_dataset)
-     VALUES ($1, $2, COALESCE($3, 0), COALESCE($4, 0), COALESCE($5, 0), COALESCE($6, 0), $7)
+    `INSERT INTO statistik_pendidikan
+       (id_sekolah, tahun, jumlah_siswa, jumlah_guru, jumlah_rombel, jumlah_ruang_kelas,
+        ruang_kelas_baik, ruang_kelas_rusak_ringan, ruang_kelas_rusak_sedang, ruang_kelas_rusak_berat, id_dataset)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
      ON CONFLICT (id_sekolah, tahun) DO UPDATE
-       SET jumlah_siswa = COALESCE($3, statistik_pendidikan.jumlah_siswa),
-           jumlah_guru = COALESCE($4, statistik_pendidikan.jumlah_guru),
-           jumlah_rombel = COALESCE($5, statistik_pendidikan.jumlah_rombel),
-           jumlah_ruang_kelas = COALESCE($6, statistik_pendidikan.jumlah_ruang_kelas),
-           id_dataset = $7`,
-    [idSekolah, tahun, vals.jumlah_siswa, vals.jumlah_guru, vals.jumlah_rombel, vals.jumlah_ruang_kelas, idDataset]
+       SET jumlah_siswa = COALESCE(EXCLUDED.jumlah_siswa, statistik_pendidikan.jumlah_siswa),
+           jumlah_guru = COALESCE(EXCLUDED.jumlah_guru, statistik_pendidikan.jumlah_guru),
+           jumlah_rombel = COALESCE(EXCLUDED.jumlah_rombel, statistik_pendidikan.jumlah_rombel),
+           jumlah_ruang_kelas = COALESCE(EXCLUDED.jumlah_ruang_kelas, statistik_pendidikan.jumlah_ruang_kelas),
+           ruang_kelas_baik = COALESCE(EXCLUDED.ruang_kelas_baik, statistik_pendidikan.ruang_kelas_baik),
+           ruang_kelas_rusak_ringan = COALESCE(EXCLUDED.ruang_kelas_rusak_ringan, statistik_pendidikan.ruang_kelas_rusak_ringan),
+           ruang_kelas_rusak_sedang = COALESCE(EXCLUDED.ruang_kelas_rusak_sedang, statistik_pendidikan.ruang_kelas_rusak_sedang),
+           ruang_kelas_rusak_berat = COALESCE(EXCLUDED.ruang_kelas_rusak_berat, statistik_pendidikan.ruang_kelas_rusak_berat),
+           id_dataset = EXCLUDED.id_dataset`,
+    [idSekolah, tahun, vals.jumlah_siswa ?? null, vals.jumlah_guru ?? null, vals.jumlah_rombel ?? null, vals.jumlah_ruang_kelas ?? null,
+      vals.ruang_kelas_baik ?? null, vals.ruang_kelas_rusak_ringan ?? null, vals.ruang_kelas_rusak_sedang ?? null, vals.ruang_kelas_rusak_berat ?? null, idDataset]
   );
   return true;
 }
@@ -214,60 +275,75 @@ async function importSekolah(client, ctx) {
   const records = toPointRecords(ctx.data);
   const out = { diproses: 0, ditambah: 0, diperbarui: 0, dilewati: 0, statistik: 0, galat: [] };
   const tahunDefault = parseInt(ctx.tahun, 10) || new Date().getFullYear();
+  const nolKosong = ctx.opsi.nol_dianggap_kosong !== false;
+  const kosong = { siswa: 0, guru: 0, kelas: 0 };
+  const perKab = {};
 
   for (let i = 0; i < records.length; i += 1) {
-    const { props, lng, lat } = records[i];
-    const nama = pick(props, ['nama_sekolah', 'nama', 'namobj', 'nm_sekolah']);
-    const npsn = pick(props, ['npsn', 'kode_sekolah']);
-    if (!nama || !npsn || lng === null || lat === null || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+    const n = normalisasiSekolah(records[i], { tahunDefault, nolKosong });
+    if (!n.ok) {
       out.dilewati += 1;
-      out.galat.push(`Baris #${i + 1}: butuh npsn, nama, dan koordinat (latitude/longitude) yang valid.`);
+      out.galat.push(`Baris #${i + 1}: ${n.alasan}`);
       continue;
     }
+    const r = n.row;
     try {
       await client.query('SAVEPOINT rec');
-      const status = pick(props, ['status_sekolah', 'status']) || 'Negeri';
-      const r = await client.query(
-        `INSERT INTO sekolah (npsn, nama_sekolah, status_sekolah, alamat, jenjang, akreditasi, geom, id_dataset)
-         VALUES ($1, $2, $3, $4, $5, $6, ST_SetSRID(ST_MakePoint($7, $8), 4326), $9)
+      const ins = await client.query(
+        `INSERT INTO sekolah (npsn, nama_sekolah, status_sekolah, alamat, jenjang, akreditasi,
+                              kabupaten_kota, kecamatan_asal, desa_kelurahan, geom, id_dataset)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, ST_SetSRID(ST_MakePoint($10, $11), 4326), $12)
          ON CONFLICT (npsn) DO UPDATE
            SET nama_sekolah = EXCLUDED.nama_sekolah, status_sekolah = EXCLUDED.status_sekolah,
                alamat = COALESCE(EXCLUDED.alamat, sekolah.alamat), jenjang = EXCLUDED.jenjang,
                akreditasi = COALESCE(EXCLUDED.akreditasi, sekolah.akreditasi),
+               kabupaten_kota = COALESCE(EXCLUDED.kabupaten_kota, sekolah.kabupaten_kota),
+               kecamatan_asal = COALESCE(EXCLUDED.kecamatan_asal, sekolah.kecamatan_asal),
+               desa_kelurahan = COALESCE(EXCLUDED.desa_kelurahan, sekolah.desa_kelurahan),
                geom = EXCLUDED.geom, id_dataset = EXCLUDED.id_dataset
          RETURNING id_sekolah, (xmax = 0) AS inserted`,
-        [
-          String(npsn), String(nama), String(status),
-          pick(props, ['alamat', 'alamat_jalan']) ? String(pick(props, ['alamat', 'alamat_jalan'])) : null,
-          String(pick(props, ['jenjang', 'bentuk_pendidikan']) || 'SMP'),
-          pick(props, ['akreditasi']) ? String(pick(props, ['akreditasi'])).slice(0, 5) : null,
-          lng, lat, ctx.idDataset,
-        ]
+        [r.npsn, r.nama, r.status, r.alamat, r.jenjang, r.akreditasi, r.kabupaten_kota, r.kecamatan_asal, r.desa_kelurahan, r.lng, r.lat, ctx.idDataset]
       );
-      const { id_sekolah: idSekolah, inserted } = r.rows[0];
-      const tahun = parseInt(pick(props, ['tahun']), 10) || tahunDefault;
-      if (await upsertStatistik(client, idSekolah, tahun, props, ctx.idDataset)) out.statistik += 1;
+      const { id_sekolah: idSekolah, inserted } = ins.rows[0];
+      if (await upsertStatistik(client, idSekolah, r.tahun, r.statistik, ctx.idDataset)) out.statistik += 1;
       await client.query('RELEASE SAVEPOINT rec');
       out.diproses += 1;
       if (inserted) out.ditambah += 1;
       else out.diperbarui += 1;
+      if (r.statistik.jumlah_siswa === null) kosong.siswa += 1;
+      if (r.statistik.jumlah_guru === null) kosong.guru += 1;
+      if (r.statistik.jumlah_ruang_kelas === null) kosong.kelas += 1;
+      perKab[r.kabupaten_kota || '(tidak ada)'] = (perKab[r.kabupaten_kota || '(tidak ada)'] || 0) + 1;
     } catch (e) {
       await client.query('ROLLBACK TO SAVEPOINT rec');
       out.dilewati += 1;
-      out.galat.push(`Baris #${i + 1} (${nama}): ${e.message}`);
+      out.galat.push(`Baris #${i + 1} (${r.nama}): ${e.message}`);
     }
   }
 
+  // Ringkasan kelengkapan data (informasi untuk Operator)
+  const info = [];
+  if (kosong.siswa) info.push(`${kosong.siswa} sekolah tanpa data jumlah siswa`);
+  if (kosong.guru) info.push(`${kosong.guru} sekolah tanpa data guru`);
+  if (kosong.kelas) info.push(`${kosong.kelas} sekolah tanpa data ruang kelas`);
+  if (info.length) out.galat.unshift(`Kelengkapan data (dibaca sebagai KOSONG, bukan nol): ${info.join('; ')}.`);
+  if (Object.keys(perKab).length > 1) out.galat.unshift(`Sebaran per kabupaten/kota: ${Object.entries(perKab).map(([k, v]) => `${k} = ${v}`).join(', ')}.`);
+
   // Tetapkan kecamatan tiap sekolah lewat spatial join (titik berada di dalam poligon)
-  await client.query(
-    `UPDATE sekolah s SET id_wilayah = w.id_wilayah
-     FROM wilayah w
-     WHERE s.id_dataset = $1 AND w.level_wilayah = 'Kecamatan' AND w.geom IS NOT NULL AND ST_Covers(w.geom, s.geom)`,
-    [ctx.idDataset]
-  );
-  const unmatched = await client.query(`SELECT COUNT(*)::int AS n FROM sekolah WHERE id_dataset = $1 AND id_wilayah IS NULL`, [ctx.idDataset]);
-  if (unmatched.rows[0].n > 0) {
-    out.galat.push(`${unmatched.rows[0].n} sekolah berada di luar semua poligon kecamatan yang ada (tidak masuk perhitungan wilayah).`);
+  const wil = await client.query(`SELECT COUNT(*)::int AS n FROM wilayah WHERE level_wilayah = 'Kecamatan' AND geom IS NOT NULL`);
+  if (wil.rows[0].n === 0) {
+    out.galat.push('Batas kecamatan belum ada, sehingga kecamatan sekolah belum ditetapkan secara spasial. Unggah dataset wilayah; sekolah akan otomatis terhubung.');
+  } else {
+    await client.query(
+      `UPDATE sekolah s SET id_wilayah = w.id_wilayah
+       FROM wilayah w
+       WHERE s.id_dataset = $1 AND w.level_wilayah = 'Kecamatan' AND w.geom IS NOT NULL AND ST_Covers(w.geom, s.geom)`,
+      [ctx.idDataset]
+    );
+    const unmatched = await client.query(`SELECT COUNT(*)::int AS n FROM sekolah WHERE id_dataset = $1 AND id_wilayah IS NULL`, [ctx.idDataset]);
+    if (unmatched.rows[0].n > 0) {
+      out.galat.push(`${unmatched.rows[0].n} sekolah berada di luar semua poligon kecamatan yang ada (tidak masuk perhitungan wilayah).`);
+    }
   }
   return out;
 }
@@ -286,7 +362,7 @@ async function importStatistik(client, ctx) {
       continue;
     }
     const tahun = parseInt(pick(row, ['tahun']), 10) || tahunDefault;
-    if (await upsertStatistik(client, found.rows[0].id_sekolah, tahun, row, ctx.idDataset)) {
+    if (await upsertStatistik(client, found.rows[0].id_sekolah, tahun, bacaStatistik(row, { nolKosong: ctx.opsi.nol_dianggap_kosong !== false }), ctx.idDataset)) {
       out.diproses += 1;
       out.diperbarui += 1;
     } else {
@@ -515,5 +591,5 @@ async function dataStatus() {
 
 module.exports = {
   KATEGORI, importDataset, listDatasets, setDatasetAktif, deleteDataset, dataStatus,
-  _internal: { pick, num, dec, toPointRecords, toFeatures, toRows, autoKode },
+  _internal: { pick, num, dec, toPointRecords, toFeatures, toRows, autoKode, normalisasiSekolah, bacaStatistik, normAkreditasi, stripPrefix },
 };

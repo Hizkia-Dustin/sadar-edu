@@ -88,10 +88,37 @@ const fmt = (v, d = 0) =>
 // Metrik & indikator turunan
 // ---------------------------------------------------------------------------
 
+/**
+ * Komponen metrik dengan memperhatikan KELENGKAPAN DATA.
+ * Data sekolah nyata sering kosong (mis. ruang kelas tidak diisi). Nilai kosong BUKAN nol:
+ *  - rasio siswa/kelas hanya memakai siswa dari sekolah yang ruang kelasnya tercatat,
+ *  - rasio siswa/guru hanya memakai siswa dari sekolah yang gurunya tercatat,
+ *  - sekolah tanpa data ruang kelas dianggap berkapasitas setara jumlah siswanya (netral).
+ * Bila field turunan tidak ada (metrik lama), semua sekolah dianggap lengkap.
+ */
+function parts(m) {
+  const siswa = toNum(m.jumlah_siswa) || 0;
+  const sekolah = toNum(m.jumlah_sekolah) || 0;
+  const pick = (v, fallback) => (v === undefined || v === null ? fallback : toNum(v) || 0);
+  return {
+    sekolah,
+    sekolahAdaSiswa: pick(m.sekolah_ada_siswa, sekolah),
+    siswa,
+    siswaKelas: pick(m.siswa_dgn_kelas, siswa),
+    siswaGuru: pick(m.siswa_dgn_guru, siswa),
+    siswaTanpaKelas: pick(m.siswa_tanpa_data_kelas, 0),
+    ruang: toNum(m.jumlah_ruang_kelas) || 0,
+    guru: toNum(m.jumlah_guru) || 0,
+  };
+}
+
 /** Estimasi jumlah siswa yang ingin ditampung = penduduk usia SMP x target APK */
 const demandOf = (m, cfg = defaultConfig) => (toNum(m.penduduk_usia_smp) || 0) * cfg.TARGET_APK;
-/** Kapasitas = ruang kelas x siswa per rombel (asumsi 1 ruang kelas = 1 rombel) */
-const kapasitasOf = (m, cfg = defaultConfig) => (toNum(m.jumlah_ruang_kelas) || 0) * cfg.SISWA_PER_ROMBEL;
+/** Kapasitas = ruang kelas tercatat x siswa per rombel + siswa di sekolah tanpa data kelas (netral) */
+const kapasitasOf = (m, cfg = defaultConfig) => {
+  const c = parts(m);
+  return c.ruang * cfg.SISWA_PER_ROMBEL + c.siswaTanpaKelas;
+};
 const gapKursiOf = (m, cfg = defaultConfig) => Math.max(0, demandOf(m, cfg) - kapasitasOf(m, cfg));
 
 /**
@@ -100,20 +127,17 @@ const gapKursiOf = (m, cfg = defaultConfig) => Math.max(0, demandOf(m, cfg) - ka
  * bobot dinormalkan ulang di antara indikator yang tersedia).
  */
 function deriveIndicators(m, cfg = defaultConfig) {
-  const sekolah = toNum(m.jumlah_sekolah) || 0;
-  const siswa = toNum(m.jumlah_siswa) || 0;
-  const guru = toNum(m.jumlah_guru) || 0;
-  const ruang = toNum(m.jumlah_ruang_kelas) || 0;
+  const c = parts(m);
   const usia = toNum(m.penduduk_usia_smp) || 0;
   const luas = toNum(m.luas_km2) || 0;
   const demand = demandOf(m, cfg);
 
   return {
     GAP_KAPASITAS: demand > 0 ? (gapKursiOf(m, cfg) / demand) * 100 : null,
-    RASIO_SISWA_KELAS: ruang > 0 ? siswa / ruang : null,
+    RASIO_SISWA_KELAS: c.ruang > 0 ? c.siswaKelas / c.ruang : null,
     // Wilayah tanpa sekolah diperlakukan seolah seluruh kebutuhan dilayani satu sekolah (kasus terburuk)
-    BEBAN_SISWA_SEKOLAH: sekolah > 0 ? siswa / sekolah : demand > 0 ? demand : null,
-    RASIO_SISWA_GURU: guru > 0 ? siswa / guru : null,
+    BEBAN_SISWA_SEKOLAH: c.sekolah === 0 ? (demand > 0 ? demand : null) : c.sekolahAdaSiswa > 0 ? c.siswa / c.sekolahAdaSiswa : null,
+    RASIO_SISWA_GURU: c.guru > 0 ? c.siswaGuru / c.guru : null,
     KEPADATAN_USIA_SMP: luas > 0 && usia > 0 ? usia / luas : null,
     AKSES_BLANK_SPOT: toNum(m.blank_pct),
     JARAK_SEKOLAH: toNum(m.jarak_terdekat_km),
@@ -274,10 +298,23 @@ function diagnose({ nama, metrics, kontribusi, indikator, cfg = defaultConfig })
     kalimat.push(`Faktor yang paling mempengaruhi skor: ${faktorUtama.map((f) => f.nama).join(', ')}.`);
   }
 
+  const catatanData = [];
+  const tanpaKelas = toNum(m.sekolah_tanpa_data_kelas) || 0;
+  const tanpaGuru = toNum(m.sekolah_tanpa_data_guru) || 0;
+  if (tanpaKelas > 0 && sekolah > 0) {
+    catatanData.push(
+      `Data ruang kelas belum tersedia untuk ${fmt(tanpaKelas)} dari ${fmt(sekolah)} sekolah; kapasitasnya dianggap setara jumlah siswanya dan tidak masuk rasio siswa per kelas.`
+    );
+  }
+  if (tanpaGuru > 0 && sekolah > 0) {
+    catatanData.push(`Data guru belum tersedia untuk ${fmt(tanpaGuru)} dari ${fmt(sekolah)} sekolah; tidak masuk rasio siswa per guru.`);
+  }
+
   return {
     ringkasan: `${nama ? nama + ': ' : ''}${kalimat.join(' ')}`.trim(),
     masalah,
     faktor_utama: faktorUtama,
+    catatan_data: catatanData,
   };
 }
 
@@ -286,10 +323,12 @@ function recommendIntervensi(metrics, cfg = defaultConfig) {
   const raw = deriveIndicators(m, cfg);
   const gap = gapKursiOf(m, cfg);
   const kapasitasSekolahBaru = cfg.SEKOLAH_BARU_RUANG_KELAS * cfg.SISWA_PER_ROMBEL;
-  const sekolah = toNum(m.jumlah_sekolah) || 0;
-  const siswa = toNum(m.jumlah_siswa) || 0;
-  const guru = toNum(m.jumlah_guru) || 0;
-  const ruang = toNum(m.jumlah_ruang_kelas) || 0;
+  const pc = parts(m);
+  const sekolah = pc.sekolah;
+  const siswa = pc.siswaKelas;
+  const siswaGuru = pc.siswaGuru;
+  const guru = pc.guru;
+  const ruang = pc.ruang;
   const out = [];
 
   const butuhSekolahBaru =
@@ -320,7 +359,7 @@ function recommendIntervensi(metrics, cfg = defaultConfig) {
   }
 
   if (isNum(raw.RASIO_SISWA_GURU) && raw.RASIO_SISWA_GURU > cfg.AMBANG_SISWA_PER_GURU && guru > 0) {
-    const butuh = Math.ceil(siswa / cfg.AMBANG_SISWA_PER_GURU) - guru;
+    const butuh = Math.ceil(siswaGuru / cfg.AMBANG_SISWA_PER_GURU) - guru;
     out.push({
       tipe: 'Penambahan Guru',
       prioritas: 2,
@@ -400,7 +439,14 @@ function simulate({ metrics, skenario, indikator, stats, cfg = defaultConfig }) 
   const serap = s.serap_kebutuhan === undefined ? true : Boolean(s.serap_kebutuhan);
   if (serap) {
     const belumTertampung = Math.max(0, demandOf(metrics, cfg) - (toNum(metrics.jumlah_siswa) || 0));
-    after.jumlah_siswa = (toNum(metrics.jumlah_siswa) || 0) + Math.min(belumTertampung, tambahKapasitas);
+    const serapan = Math.min(belumTertampung, tambahKapasitas);
+    after.jumlah_siswa = (toNum(metrics.jumlah_siswa) || 0) + serapan;
+    if (metrics.siswa_dgn_kelas !== undefined && metrics.siswa_dgn_kelas !== null) after.siswa_dgn_kelas = (toNum(metrics.siswa_dgn_kelas) || 0) + serapan;
+    if (metrics.siswa_dgn_guru !== undefined && metrics.siswa_dgn_guru !== null) after.siswa_dgn_guru = (toNum(metrics.siswa_dgn_guru) || 0) + serapan;
+  }
+  // Sekolah baru dianggap langsung memiliki siswa (menurunkan beban per sekolah)
+  if (metrics.sekolah_ada_siswa !== undefined && metrics.sekolah_ada_siswa !== null) {
+    after.sekolah_ada_siswa = (toNum(metrics.sekolah_ada_siswa) || 0) + sekolahBaru;
   }
   if (isNum(toNum(s.blank_pct_after))) after.blank_pct = toNum(s.blank_pct_after);
   if (isNum(toNum(s.jarak_after))) after.jarak_terdekat_km = toNum(s.jarak_after);

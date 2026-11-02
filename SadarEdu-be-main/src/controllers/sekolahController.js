@@ -6,10 +6,11 @@ const { httpError } = require('../middleware/errorHandler');
 // Kolom sekolah + statistik terbaru (<= tahun bila diberikan)
 const SELECT_SEKOLAH = `
   s.id_sekolah, s.npsn, s.id_wilayah, w.nama_wilayah, s.nama_sekolah, s.status_sekolah,
-  s.alamat, s.jenjang, s.akreditasi,
+  s.alamat, s.jenjang, s.akreditasi, s.kabupaten_kota, s.kecamatan_asal, s.desa_kelurahan,
   st.tahun AS tahun_statistik,
-  COALESCE(st.jumlah_siswa, 0) AS jumlah_siswa, COALESCE(st.jumlah_guru, 0) AS jumlah_guru,
-  COALESCE(st.jumlah_rombel, 0) AS jumlah_rombel, COALESCE(st.jumlah_ruang_kelas, 0) AS jumlah_ruang_kelas`;
+  st.jumlah_siswa, st.jumlah_guru, st.jumlah_rombel, st.jumlah_ruang_kelas,
+  st.ruang_kelas_baik, st.ruang_kelas_rusak_ringan, st.ruang_kelas_rusak_sedang, st.ruang_kelas_rusak_berat`;
+// Catatan: nilai statistik yang kosong dikembalikan sebagai null (bukan 0) agar FE dapat menampilkan "-".
 
 const joinStatistik = (tahunParam) => `
   LEFT JOIN wilayah w ON s.id_wilayah = w.id_wilayah
@@ -119,6 +120,9 @@ const getSekolahNearby = async (req, res, next) => {
   }
 };
 
+// '' / undefined / null -> NULL (data kosong), angka tetap angka
+const kosongNull = (v) => (v === undefined || v === null || v === '' ? null : Number(v));
+
 const upsertStatistikRow = async (client, idSekolah, tahun, s) => {
   const r = await client.query(
     `INSERT INTO statistik_pendidikan (id_sekolah, tahun, jumlah_siswa, jumlah_guru, jumlah_rombel, jumlah_ruang_kelas)
@@ -127,7 +131,7 @@ const upsertStatistikRow = async (client, idSekolah, tahun, s) => {
        SET jumlah_siswa = EXCLUDED.jumlah_siswa, jumlah_guru = EXCLUDED.jumlah_guru,
            jumlah_rombel = EXCLUDED.jumlah_rombel, jumlah_ruang_kelas = EXCLUDED.jumlah_ruang_kelas
      RETURNING *`,
-    [idSekolah, tahun, s.jumlah_siswa || 0, s.jumlah_guru || 0, s.jumlah_rombel || 0, s.jumlah_ruang_kelas || 0]
+    [idSekolah, tahun, kosongNull(s.jumlah_siswa), kosongNull(s.jumlah_guru), kosongNull(s.jumlah_rombel), kosongNull(s.jumlah_ruang_kelas)]
   );
   return r.rows[0];
 };

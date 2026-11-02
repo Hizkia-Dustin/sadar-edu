@@ -223,3 +223,13 @@ CREATE INDEX IF NOT EXISTS idx_layer_constraint_jenis ON layer_constraint (jenis
 CREATE INDEX IF NOT EXISTS idx_sekolah_wilayah ON sekolah (id_wilayah);
 CREATE INDEX IF NOT EXISTS idx_wilayah_level ON wilayah (level_wilayah);
 CREATE INDEX IF NOT EXISTS idx_candidate_tahun ON candidate_area (tahun);
+
+-- REVISI v3: atribut asal sekolah & kondisi ruang kelas (dari data Dapodik/Kemendikdasmen)
+ALTER TABLE sekolah ADD COLUMN IF NOT EXISTS kabupaten_kota VARCHAR(40);
+ALTER TABLE sekolah ADD COLUMN IF NOT EXISTS kecamatan_asal VARCHAR(100);
+ALTER TABLE sekolah ADD COLUMN IF NOT EXISTS desa_kelurahan VARCHAR(100);
+ALTER TABLE statistik_pendidikan ADD COLUMN IF NOT EXISTS ruang_kelas_baik INT;
+ALTER TABLE statistik_pendidikan ADD COLUMN IF NOT EXISTS ruang_kelas_rusak_ringan INT;
+ALTER TABLE statistik_pendidikan ADD COLUMN IF NOT EXISTS ruang_kelas_rusak_sedang INT;
+ALTER TABLE statistik_pendidikan ADD COLUMN IF NOT EXISTS ruang_kelas_rusak_berat INT;
+CREATE INDEX IF NOT EXISTS idx_sekolah_kecamatan_asal ON sekolah (kecamatan_asal);

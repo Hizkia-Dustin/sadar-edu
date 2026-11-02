@@ -3,7 +3,9 @@ import { api } from "../../lib/api";
 import { fmt, mapSchoolFeature } from "../../lib/analysis";
 import { ErrorBox, Spinner, inputCls, btnPrimary, btnGhost } from "../ui/kit";
 
-const EMPTY = { npsn: "", nama_sekolah: "", status_sekolah: "Negeri", alamat: "", jenjang: "SMP", akreditasi: "", latitude: "", longitude: "", tahun: new Date().getFullYear(), jumlah_siswa: 0, jumlah_guru: 0, jumlah_rombel: 0, jumlah_ruang_kelas: 0 };
+const kosongNull = (v) => (v === "" || v === null || v === undefined ? null : Number(v));
+
+const EMPTY = { npsn: "", nama_sekolah: "", status_sekolah: "Negeri", alamat: "", jenjang: "SMP", akreditasi: "", latitude: "", longitude: "", tahun: new Date().getFullYear(), jumlah_siswa: "", jumlah_guru: "", jumlah_rombel: "", jumlah_ruang_kelas: "" };
 
 export default function SekolahTab({ onChanged }) {
   const [q, setQ] = useState("");
@@ -39,7 +41,7 @@ export default function SekolahTab({ onChanged }) {
       setEdit({
         id: d.id_sekolah, npsn: d.npsn, nama_sekolah: d.nama_sekolah, status_sekolah: d.status_sekolah, alamat: d.alamat || "", jenjang: d.jenjang || "SMP",
         akreditasi: d.akreditasi || "", latitude: d.latitude, longitude: d.longitude, tahun: d.tahun_statistik || new Date().getFullYear(),
-        jumlah_siswa: d.jumlah_siswa, jumlah_guru: d.jumlah_guru, jumlah_rombel: d.jumlah_rombel, jumlah_ruang_kelas: d.jumlah_ruang_kelas,
+        jumlah_siswa: d.jumlah_siswa ?? "", jumlah_guru: d.jumlah_guru ?? "", jumlah_rombel: d.jumlah_rombel ?? "", jumlah_ruang_kelas: d.jumlah_ruang_kelas ?? "",
       });
     } catch (e) {
       setError(e.message);
@@ -51,7 +53,8 @@ export default function SekolahTab({ onChanged }) {
     setSaving(true);
     setError("");
     const body = { ...edit, latitude: Number(edit.latitude), longitude: Number(edit.longitude), tahun: Number(edit.tahun) || undefined,
-      jumlah_siswa: Number(edit.jumlah_siswa) || 0, jumlah_guru: Number(edit.jumlah_guru) || 0, jumlah_rombel: Number(edit.jumlah_rombel) || 0, jumlah_ruang_kelas: Number(edit.jumlah_ruang_kelas) || 0 };
+      // kosong tetap kosong (null), bukan 0: data yang belum diisi tidak boleh dihitung sebagai nol
+      jumlah_siswa: kosongNull(edit.jumlah_siswa), jumlah_guru: kosongNull(edit.jumlah_guru), jumlah_rombel: kosongNull(edit.jumlah_rombel), jumlah_ruang_kelas: kosongNull(edit.jumlah_ruang_kelas) };
     try {
       const res = edit.id ? await api.put(`/sekolah/${edit.id}`, body) : await api.post("/sekolah", body);
       setEdit(null);
@@ -139,7 +142,7 @@ export default function SekolahTab({ onChanged }) {
               {num("jumlah_rombel", "Jumlah rombel", { min: 0 })}
               {num("jumlah_ruang_kelas", "Jumlah ruang kelas", { min: 0 })}
             </div>
-            <p className="text-[10px] text-slate-400">Kecamatan ditentukan otomatis dari koordinat. Setelah menyimpan, hitung ulang analisis agar skor diperbarui.</p>
+            <p className="text-[10px] text-slate-400">Kosongkan kolom statistik yang datanya belum ada (jangan isi 0). Kecamatan ditentukan otomatis dari koordinat. Setelah menyimpan, hitung ulang analisis agar skor diperbarui.</p>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" className={btnGhost} onClick={() => setEdit(null)}>Batal</button>
               <button className={btnPrimary} disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</button>

@@ -54,6 +54,12 @@ async function collectMetrics(tahun, radiusKm = cfg.COVERAGE_RADIUS_KM, client =
            COALESCE(sc.jumlah_guru, 0)        AS jumlah_guru,
            COALESCE(sc.jumlah_rombel, 0)      AS jumlah_rombel,
            COALESCE(sc.jumlah_ruang_kelas, 0) AS jumlah_ruang_kelas,
+           COALESCE(sc.sekolah_ada_siswa, 0)  AS sekolah_ada_siswa,
+           COALESCE(sc.siswa_dgn_kelas, 0)    AS siswa_dgn_kelas,
+           COALESCE(sc.siswa_tanpa_data_kelas, 0) AS siswa_tanpa_data_kelas,
+           COALESCE(sc.siswa_dgn_guru, 0)     AS siswa_dgn_guru,
+           COALESCE(sc.sekolah_tanpa_data_kelas, 0) AS sekolah_tanpa_data_kelas,
+           COALESCE(sc.sekolah_tanpa_data_guru, 0)  AS sekolah_tanpa_data_guru,
            CASE WHEN cov.geom IS NULL THEN 100
                 ELSE LEAST(100, GREATEST(0, 100.0 *
                      ST_Area(ST_Difference(k.geom, cov.geom)::geography) /
@@ -70,10 +76,16 @@ async function collectMetrics(tahun, radiusKm = cfg.COVERAGE_RADIUS_KM, client =
     ) kp ON TRUE
     LEFT JOIN LATERAL (
       SELECT COUNT(*)::int AS jumlah_sekolah,
-             COALESCE(SUM(st.jumlah_siswa), 0)::int       AS jumlah_siswa,
-             COALESCE(SUM(st.jumlah_guru), 0)::int        AS jumlah_guru,
-             COALESCE(SUM(st.jumlah_rombel), 0)::int      AS jumlah_rombel,
-             COALESCE(SUM(st.jumlah_ruang_kelas), 0)::int AS jumlah_ruang_kelas
+             COUNT(st.jumlah_siswa)::int                                              AS sekolah_ada_siswa,
+             COALESCE(SUM(st.jumlah_siswa), 0)::int                                   AS jumlah_siswa,
+             COALESCE(SUM(st.jumlah_guru), 0)::int                                    AS jumlah_guru,
+             COALESCE(SUM(st.jumlah_rombel), 0)::int                                  AS jumlah_rombel,
+             COALESCE(SUM(st.jumlah_ruang_kelas), 0)::int                             AS jumlah_ruang_kelas,
+             COALESCE(SUM(st.jumlah_siswa) FILTER (WHERE st.jumlah_ruang_kelas IS NOT NULL), 0)::int AS siswa_dgn_kelas,
+             COALESCE(SUM(st.jumlah_siswa) FILTER (WHERE st.jumlah_ruang_kelas IS NULL), 0)::int     AS siswa_tanpa_data_kelas,
+             COALESCE(SUM(st.jumlah_siswa) FILTER (WHERE st.jumlah_guru IS NOT NULL), 0)::int        AS siswa_dgn_guru,
+             (COUNT(*) FILTER (WHERE st.jumlah_ruang_kelas IS NULL))::int             AS sekolah_tanpa_data_kelas,
+             (COUNT(*) FILTER (WHERE st.jumlah_guru IS NULL))::int                    AS sekolah_tanpa_data_guru
       FROM sekolah s
       LEFT JOIN LATERAL (
         SELECT y.jumlah_siswa, y.jumlah_guru, y.jumlah_rombel, y.jumlah_ruang_kelas
@@ -120,7 +132,7 @@ function buildResultRows(results, metricRows, indikator, radiusKm) {
         kapasitas_kursi: S.round(S.kapasitasOf(r.metrics, cfg), 0),
         gap_kursi: S.round(S.gapKursiOf(r.metrics, cfg), 0),
       },
-      rekomendasi: { masalah: diag.masalah, faktor_utama: diag.faktor_utama, intervensi },
+      rekomendasi: { masalah: diag.masalah, faktor_utama: diag.faktor_utama, intervensi, catatan_data: diag.catatan_data },
     };
   });
 }

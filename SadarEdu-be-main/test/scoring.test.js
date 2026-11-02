@@ -232,3 +232,49 @@ test('pickTopKandidat: batas per wilayah & jarak minimum antar-kandidat', () => 
   const top2 = S.pickTopKandidat(cells, { topN: 2 });
   assert.equal(top2.length, 2);
 });
+
+// ---- Kelengkapan data (data sekolah nyata sering kosong) ----
+const wilayahLengkap = { penduduk_usia_smp: 1000, luas_km2: 20, jumlah_sekolah: 3, jumlah_siswa: 900, jumlah_guru: 45, jumlah_ruang_kelas: 30, blank_pct: 10, jarak_terdekat_km: 1 };
+const wilayahBolong = {
+  // sekolah ke-3 (siswa 300) tidak punya data ruang kelas & guru; stok sekolah lain sama persis dengan wilayahLengkap
+  ...wilayahLengkap, jumlah_siswa: 900, jumlah_ruang_kelas: 20, jumlah_guru: 30,
+  siswa_dgn_kelas: 600, siswa_tanpa_data_kelas: 300, siswa_dgn_guru: 600, sekolah_ada_siswa: 3,
+  sekolah_tanpa_data_kelas: 1, sekolah_tanpa_data_guru: 1,
+};
+
+test('data kosong bukan nol: rasio siswa/kelas & siswa/guru tidak digelembungkan', () => {
+  const naif = S.deriveIndicators({ ...wilayahBolong, siswa_dgn_kelas: undefined, siswa_tanpa_data_kelas: undefined, siswa_dgn_guru: undefined }); // membaca kosong sebagai nol
+  const benar = S.deriveIndicators(wilayahBolong);
+  assert.equal(naif.RASIO_SISWA_KELAS, 45); // 900/20 -> salah
+  assert.equal(benar.RASIO_SISWA_KELAS, 30); // 600/20
+  assert.equal(benar.RASIO_SISWA_GURU, 20); // 600/30
+});
+
+test('data kosong: kapasitas sekolah tanpa data kelas dianggap netral (setara siswa)', () => {
+  assert.equal(S.kapasitasOf(wilayahBolong, cfg), 20 * 32 + 300);
+  // wilayah lengkap: 30 kelas x 32 = 960 >= 900 -> tidak ada gap; wilayah bolong tidak boleh terlihat lebih buruk
+  assert.equal(S.gapKursiOf(wilayahLengkap, cfg), Math.max(0, 900 - 960));
+  const gBolong = S.deriveIndicators(wilayahBolong, cfg).GAP_KAPASITAS;
+  const gLengkap = S.deriveIndicators(wilayahLengkap, cfg).GAP_KAPASITAS;
+  assert.ok(gBolong <= gLengkap + 1e-9 || gBolong < 10, `gap bolong ${gBolong} vs lengkap ${gLengkap}`);
+});
+
+test('diagnosis menyebut kelengkapan data bila ada sekolah tanpa data', () => {
+  const { results } = S.computeScores([{ id: 1, metrics: wilayahBolong }, { id: 2, metrics: wilayahLengkap }], IND);
+  const r = results.find((x) => x.id === 1);
+  const d = S.diagnose({ nama: 'X', metrics: wilayahBolong, kontribusi: r.kontribusi, indikator: IND });
+  assert.equal(d.catatan_data.length, 2);
+  assert.match(d.catatan_data[0], /1 dari 3 sekolah/);
+  const d2 = S.diagnose({ nama: 'Y', metrics: wilayahLengkap, kontribusi: r.kontribusi, indikator: IND });
+  assert.deepEqual(d2.catatan_data, []);
+});
+
+test('simulasi pada metrik dengan data kosong tetap konsisten (sebelum = skor tersimpan)', () => {
+  const rows = [{ id: 1, metrics: wilayahBolong }, { id: 2, metrics: wilayahLengkap }];
+  const { results, stats } = S.computeScores(rows, IND);
+  const sim = S.simulate({ metrics: wilayahBolong, skenario: { ruang_kelas: 5 }, indikator: IND, stats });
+  assert.equal(sim.before.skor, results.find((x) => x.id === 1).skor);
+  assert.ok(sim.after.metrik.siswa_dgn_kelas >= wilayahBolong.siswa_dgn_kelas);
+  const baru = S.simulate({ metrics: wilayahBolong, skenario: { sekolah_baru: 1 }, indikator: IND, stats });
+  assert.equal(baru.after.metrik.sekolah_ada_siswa, 4);
+});

@@ -1,0 +1,208 @@
+{
+ "type": "FeatureCollection",
+ "features": [
+  {
+   "type": "Feature",
+   "id": 1,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     106.8535,
+     -6.5405
+    ]
+   },
+   "properties": {
+    "npsn": 20231132,
+    "nama": "SMP PGRI KADUMANGGU",
+    "status": "Swasta",
+    "jenjang": "SMP",
+    "akreditasi": "Tidak diisi",
+    "provinsi": "Prov. Jawa Barat",
+    "kabupaten": "Kab. Bogor",
+    "kecamatan": "Kec. Babakan Madang",
+    "desaKelurahan": "Kadumangu",
+    "jumlahSiswa": 84,
+    "jumlahGuru": 4,
+    "ruangKelas": 6,
+    "ruangKelasBaik": 0,
+    "ruangKelasRusakRingan": 4,
+    "ruangKelasRusakSedang": 1,
+    "ruangKelasRusakBerat": 1
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 2,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     106.7079,
+     -6.6046
+    ]
+   },
+   "properties": {
+    "npsn": 69909221,
+    "nama": "SMP IT YASHODA",
+    "status": "Swasta",
+    "jenjang": "SMP",
+    "akreditasi": "C",
+    "provinsi": "Prov. Jawa Barat",
+    "kabupaten": "Kab. Bogor",
+    "kecamatan": "Kec. Tenjolaya",
+    "desaKelurahan": "Cinangneng",
+    "jumlahSiswa": 80,
+    "jumlahGuru": 5,
+    "ruangKelas": 3,
+    "ruangKelasBaik": 2,
+    "ruangKelasRusakRingan": 0,
+    "ruangKelasRusakSedang": 0,
+    "ruangKelasRusakBerat": 1
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 8,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     106.7859,
+     -6.6235
+    ]
+   },
+   "properties": {
+    "npsn": 69936625,
+    "nama": "SMPN 3 CIOMAS",
+    "status": "Negeri",
+    "jenjang": "SMP",
+    "akreditasi": "A",
+    "provinsi": "Prov. Jawa Barat",
+    "kabupaten": "Kab. Bogor",
+    "kecamatan": "Kec. Ciomas",
+    "desaKelurahan": "Kota Batu",
+    "jumlahSiswa": 1210,
+    "jumlahGuru": 41,
+    "ruangKelas": null,
+    "ruangKelasBaik": null,
+    "ruangKelasRusakRingan": null,
+    "ruangKelasRusakSedang": null,
+    "ruangKelasRusakBerat": null
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 10,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     106.78157,
+     -6.6456683
+    ]
+   },
+   "properties": {
+    "npsn": 20238486,
+    "nama": "SMP BAGUS",
+    "status": "Swasta",
+    "jenjang": "SMP",
+    "akreditasi": "B",
+    "provinsi": "Prov. Jawa Barat",
+    "kabupaten": "Kota Bogor",
+    "kecamatan": "Kec. Kota Bogor Selatan",
+    "desaKelurahan": "Mulyaharja",
+    "jumlahSiswa": 226,
+    "jumlahGuru": 6,
+    "ruangKelas": null,
+    "ruangKelasBaik": null,
+    "ruangKelasRusakRingan": null,
+    "ruangKelasRusakSedang": null,
+    "ruangKelasRusakBerat": null
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 26,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     106.7662,
+     -6.6444
+    ]
+   },
+   "properties": {
+    "npsn": 20231086,
+    "nama": "SMPS LESTARI",
+    "status": "Swasta",
+    "jenjang": "SMP",
+    "akreditasi": "B",
+    "provinsi": "Prov. Jawa Barat",
+    "kabupaten": "Kab. Bogor",
+    "kecamatan": "Kec. Tamansari",
+    "desaKelurahan": "Sirnagalih",
+    "jumlahSiswa": 33,
+    "jumlahGuru": 3,
+    "ruangKelas": 0,
+    "ruangKelasBaik": 0,
+    "ruangKelasRusakRingan": 0,
+    "ruangKelasRusakSedang": 0,
+    "ruangKelasRusakBerat": 0
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 48,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     106.7765,
+     -6.635
+    ]
+   },
+   "properties": {
+    "npsn": 20200715,
+    "nama": "SMP PGRI KOTABATU",
+    "status": "Swasta",
+    "jenjang": "SMP",
+    "akreditasi": "C",
+    "provinsi": "Prov. Jawa Barat",
+    "kabupaten": "Kab. Bogor",
+    "kecamatan": "Kec. Ciomas",
+    "desaKelurahan": "Kota Batu",
+    "jumlahSiswa": 0,
+    "jumlahGuru": 1,
+    "ruangKelas": null,
+    "ruangKelasBaik": null,
+    "ruangKelasRusakRingan": null,
+    "ruangKelasRusakSedang": null,
+    "ruangKelasRusakBerat": null
+   }
+  },
+  {
+   "type": "Feature",
+   "id": 49,
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     106.8781,
+     -6.5058
+    ]
+   },
+   "properties": {
+    "npsn": 69762673,
+    "nama": "SMPS MENTARI BANGSA",
+    "status": "Swasta",
+    "jenjang": "SMP",
+    "akreditasi": "Tidak diisi",
+    "provinsi": "Prov. Jawa Barat",
+    "kabupaten": "Kab. Bogor",
+    "kecamatan": "Kec. Tajurhalang",
+    "desaKelurahan": "TAJURHALANG",
+    "jumlahSiswa": 0,
+    "jumlahGuru": 0,
+    "ruangKelas": 0,
+    "ruangKelasBaik": 0,
+    "ruangKelasRusakRingan": 0,
+    "ruangKelasRusakSedang": 0,
+    "ruangKelasRusakBerat": 0
+   }
+  }
+ ]
+}

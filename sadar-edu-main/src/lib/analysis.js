@@ -58,7 +58,11 @@ export function rescoreFeatures(features, weights, kategoriMeta) {
   });
 }
 
-/** Properti sekolah dari API -> bentuk yang dipakai komponen UI */
+/**
+ * Properti sekolah dari API -> bentuk yang dipakai komponen UI.
+ * Nilai statistik yang kosong tetap null (jangan dijadikan 0) agar UI menampilkan "-".
+ * Kecamatan memakai hasil spatial join; bila poligon wilayah belum ada, memakai nama kecamatan dari data sumber.
+ */
 export function mapSchoolFeature(f) {
   const p = f.properties || {};
   return {
@@ -72,11 +76,17 @@ export function mapSchoolFeature(f) {
       alamat: p.alamat,
       akreditasi: p.akreditasi || null,
       idWilayah: p.id_wilayah,
-      kecamatan: p.nama_wilayah,
-      jumlahSiswa: p.jumlah_siswa ?? 0,
-      jumlahGuru: p.jumlah_guru ?? 0,
-      ruangKelas: p.jumlah_ruang_kelas ?? 0,
-      rombel: p.jumlah_rombel ?? 0,
+      kecamatan: p.nama_wilayah || p.kecamatan_asal || null,
+      desa: p.desa_kelurahan || null,
+      kabupatenKota: p.kabupaten_kota || null,
+      jumlahSiswa: p.jumlah_siswa ?? null,
+      jumlahGuru: p.jumlah_guru ?? null,
+      ruangKelas: p.jumlah_ruang_kelas ?? null,
+      rombel: p.jumlah_rombel ?? null,
+      kelasBaik: p.ruang_kelas_baik ?? null,
+      kelasRusakRingan: p.ruang_kelas_rusak_ringan ?? null,
+      kelasRusakSedang: p.ruang_kelas_rusak_sedang ?? null,
+      kelasRusakBerat: p.ruang_kelas_rusak_berat ?? null,
       tahunStatistik: p.tahun_statistik ?? null,
       jarakKm: p.jarak_km ?? null,
     },
@@ -89,4 +99,4 @@ export const fmt = (v, d = 0) =>
     : Number(v).toLocaleString('id-ID', { maximumFractionDigits: d });
 
 /** Rasio "1 : n" aman terhadap pembagian nol */
-export const rasio = (siswa, guru) => (guru > 0 ? `1 : ${Math.round(siswa / guru)}` : '-');
+export const rasio = (siswa, guru) => (guru > 0 && siswa !== null && siswa !== undefined ? `1 : ${Math.round(siswa / guru)}` : '-');
