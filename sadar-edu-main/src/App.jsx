@@ -1,35 +1,36 @@
-import { useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useState, lazy, Suspense } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 
-// Import Halaman
-import IntroPage from "./pages/IntroPage";
-import LandingPage from "./pages/HomePage";
-import Login from "./pages/auth/Login";
-import StakeholderDashboard from "./pages/stakeholder/StakeholderDashboard";
-import OperatorDashboard from "./pages/operator/OperatorDashboard";
-import EksplorasiPeta from "./pages/public/EksplorasiPeta";
+const IntroPage = lazy(() => import("./pages/IntroPage"));
+const LandingPage = lazy(() => import("./pages/HomePage"));
+const Login = lazy(() => import("./pages/auth/Login"));
+const StakeholderDashboard = lazy(() => import("./pages/stakeholder/StakeholderDashboard"));
+const OperatorDashboard = lazy(() => import("./pages/operator/OperatorDashboard"));
+const EksplorasiPeta = lazy(() => import("./pages/public/EksplorasiPeta"));
 import RequireRole from "./components/auth/RequireRole";
 
-// Import Komponen Loader & Transisi
-import AwwwardsLoader from "./components/ui/AwwwardsLoader";
-import PageTransition from "./components/ui/PageTransition";
+const AwwwardsLoader = lazy(() => import("./components/ui/AwwwardsLoader"));
+const PageTransition = lazy(() => import("./components/ui/PageTransition"));
 
-// --- ROUTER UTAMA ---
 export default function App() {
-  // AwwwardsLoader aktif saat pertama kali masuk website dan saat refresh page
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  return <BrowserRouter><AppRoutes /></BrowserRouter>;
+}
+
+function AppRoutes() {
+  const { pathname } = useLocation();
+  const isMapPage = /^\/peta\/?$/.test(pathname);
+  // Halaman peta langsung menampilkan UI tanpa intro video.
+  const [isInitialLoading, setIsInitialLoading] = useState(() => !isMapPage);
 
   return (
-    <BrowserRouter>
-      {/* 1. SAAT REFRESH PAGE & MASUK WEBSITE: Awwwards Loading Screen (0-100%, 3D Float, Logo Motion) */}
-      {isInitialLoading && (
-        <AwwwardsLoader onComplete={() => setIsInitialLoading(false)} />
-      )}
-
-      {/* 2. SAAT PINDAH-PINDAH PAGE (LANDING <-> PETA): Page Transition bergaya inspirasi user (AKSES KOTA Style) */}
-      <PageTransition />
+    <>
+      {!isMapPage && <Suspense fallback={null}>
+        {isInitialLoading && <AwwwardsLoader onComplete={() => setIsInitialLoading(false)} />}
+        <PageTransition />
+      </Suspense>}
 
       <div className="w-full min-h-screen bg-[#F8FAFC] font-sans text-slate-800 antialiased">
+        <Suspense fallback={<div className="p-6 text-sm text-slate-600" role="status">Memuat halaman...</div>}>
         <Routes>
           {/* PAGE INTRO KHUSUS (GAYA INSPIRASI USER: AKSES KOTA) */}
           <Route path="/intro" element={<IntroPage />} />
@@ -85,7 +86,8 @@ export default function App() {
             }
           />
         </Routes>
+        </Suspense>
       </div>
-    </BrowserRouter>
+    </>
   );
 }

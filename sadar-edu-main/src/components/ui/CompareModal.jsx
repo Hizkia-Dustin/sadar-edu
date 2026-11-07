@@ -1,4 +1,4 @@
-import React from "react";
+import { useShallow } from "zustand/react/shallow";
 import { useMapStore } from "../../store/useMapStore";
 
 export default function CompareModal() {
@@ -7,7 +7,12 @@ export default function CompareModal() {
     removeFromCompare,
     isCompareOpen,
     setIsCompareOpen,
-  } = useMapStore();
+  } = useMapStore(useShallow((state) => ({
+    comparedSchools: state.comparedSchools,
+    removeFromCompare: state.removeFromCompare,
+    isCompareOpen: state.isCompareOpen,
+    setIsCompareOpen: state.setIsCompareOpen,
+  })));
 
   if (!isCompareOpen) return null;
 

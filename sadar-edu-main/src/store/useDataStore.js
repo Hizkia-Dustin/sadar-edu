@@ -27,6 +27,7 @@ export const useDataStore = create((set, get) => ({
 
   /** Data publik: kecamatan, sekolah, prioritas, blank spot, ringkasan */
   loadPublic: async () => {
+    if (get().loading) return;
     set({ loading: true, error: null });
     try {
       const [wil, sek, pri, blank, ring] = await Promise.all([

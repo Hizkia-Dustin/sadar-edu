@@ -1,14 +1,15 @@
-import { useState, useMemo, useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
+import "./explorer.css";
+import schoolIllustration from "../../assets/figma/school-hero.png";
+import { useState, useMemo, useEffect, useRef, useLayoutEffect, lazy, Suspense } from "react";
 import { Link } from "react-router-dom";
 import {
+  ArrowLeft,
   Search,
   Layers,
   Building2,
   GraduationCap,
-  Sparkles,
-  ArrowLeft,
   X,
-  Compass,
   School,
   CheckCircle2,
   Maximize2,
@@ -17,29 +18,21 @@ import {
   RotateCcw,
   SlidersHorizontal,
   ChevronRight,
-  ExternalLink
 } from "lucide-react";
-import MapCanvas from "../../components/map/MapCanvas";
+const MapCanvas = lazy(() => import("../../components/map/MapCanvas"));
 import CompareModal from "../../components/ui/CompareModal";
 import { useMapStore } from "../../store/useMapStore";
 import { useDataStore } from "../../store/useDataStore";
 import { api } from "../../lib/api";
 import { colorOf, rasio, mapSchoolFeature, fmt as fmtNum } from "../../lib/analysis";
 import { KategoriBadge } from "../../components/ui/kit";
+import { isInBogor, isInBoundary } from "../../lib/bogorBoundary";
+import { POPULATION_BANDS } from "../../lib/population";
+import { useBogorLayers } from "../../hooks/useBogorLayers";
 
-// React Bits Components
-import ShinyText from "../../components/reactbits/ShinyText";
-import SpotlightCard from "../../components/reactbits/SpotlightCard";
-import AnimatedCounter from "../../components/reactbits/AnimatedCounter";
 
-// Asset Figma & foto sekolah
-import logo from "../../assets/figma/logo-sadar.svg";
-import schoolA from "../../assets/figma/school-a.png";
-import schoolB from "../../assets/figma/school-b.png";
-import schoolC from "../../assets/figma/school-c.png";
-import schoolHero from "../../assets/figma/school-hero.png";
 
-const schoolImages = [schoolA, schoolB, schoolC];
+
 
 /** Kondisi layanan wilayah + alternatif sekolah terdekat untuk satu sekolah (diambil dari API) */
 function SchoolExtra({ school, onOpen }) {
@@ -48,9 +41,8 @@ function SchoolExtra({ school, onOpen }) {
 
   useEffect(() => {
     let cancelled = false;
-    setState({ loading: true, detail: null, alt: [], error: "" });
     Promise.all([api.get(`/sekolah/${id}`), api.get(`/sekolah/${id}/alternatif`, { limit: 4, radius_km: 6 })])
-      .then(([d, a]) => !cancelled && setState({ loading: false, detail: d.data, alt: a.data.features, error: "" }))
+      .then(([d, a]) => !cancelled && setState({ loading: false, detail: d.data, alt: a.data.features.filter((f) => isInBogor(f.geometry?.coordinates)), error: "" }))
       .catch((e) => !cancelled && setState({ loading: false, detail: null, alt: [], error: e.message }));
     return () => { cancelled = true; };
   }, [id]);
@@ -94,10 +86,55 @@ function SchoolExtra({ school, onOpen }) {
   );
 }
 
+function SchoolDetail({ school, onBack, onClose, onFocus, onCompare, compared, compareFull, onOpen }) {
+  const headingRef = useRef(null);
+  const p = school.properties;
+  useEffect(() => { headingRef.current?.focus({ preventScroll: true }); }, []);
+  return (
+    <section className="explorer-detail" aria-label="Detail sekolah">
+      <div className="explorer-detail-bar"><School size={16} /><span>Profil sekolah</span><button onClick={onClose} aria-label="Tutup panel"><X size={16} /></button></div>
+      <div className="explorer-detail-content">
+        <button className="explorer-back" onClick={onBack}><ArrowLeft size={16} /> Kembali ke hasil</button>
+        <figure className="explorer-detail-photo">
+          <img src={schoolIllustration} alt="Ilustrasi bangunan dan halaman sekolah" width={1774} height={887} decoding="async" />
+          <figcaption>Foto ilustrasi · Foto sekolah ini belum tersedia</figcaption>
+        </figure>
+        <div className="explorer-detail-title">
+          <div className="explorer-school-icon"><School size={22} /></div>
+          <div><h2 ref={headingRef} tabIndex={-1}>{p.nama}</h2><p>{p.status} · Akreditasi {p.akreditasi || "Belum tersedia"}</p></div>
+        </div>
+        <p className="explorer-detail-location">{[p.desa, p.kecamatan && `Kec. ${p.kecamatan}`, p.kabupatenKota].filter(Boolean).join(", ") || "Kabupaten Bogor"}</p>
+        <button className="explorer-detail-focus" onClick={onFocus}><Maximize2 size={15} /> Fokuskan peta</button>
+        <section className="explorer-detail-section">
+          <h3>Statistik sekolah</h3>
+          <p className="explorer-detail-note">Tahun {p.tahunStatistik || "belum tersedia"}. Konfirmasi kondisi terkini ke pihak sekolah.</p>
+          <dl className="explorer-detail-metrics">
+            {[["Peserta didik", fmtNum(p.jumlahSiswa)], ["Tenaga pendidik", fmtNum(p.jumlahGuru)], ["Ruang kelas", fmtNum(p.ruangKelas)], ["Rasio guru–siswa", rasio(p.jumlahSiswa, p.jumlahGuru)]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}
+          </dl>
+        </section>
+        <section className="explorer-detail-section">
+          <h3>Kondisi ruang kelas</h3>
+          <dl className="explorer-detail-facts">
+            {[["Baik", p.kelasBaik], ["Rusak ringan", p.kelasRusakRingan], ["Rusak sedang", p.kelasRusakSedang], ["Rusak berat", p.kelasRusakBerat]].map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value == null ? "Belum tersedia" : `${fmtNum(value)} kelas`}</dd></div>)}
+          </dl>
+        </section>
+        <section className="explorer-detail-section">
+          <h3>Informasi sekolah</h3>
+          <dl className="explorer-detail-facts">
+            <div><dt>NPSN</dt><dd>{p.npsn || "Belum tersedia"}</dd></div>
+            <div><dt>Pengelolaan</dt><dd>{p.status || "Belum tersedia"}</dd></div>
+            <div><dt>Koordinat</dt><dd>{school.geometry.coordinates[1].toFixed(4)}, {school.geometry.coordinates[0].toFixed(4)}</dd></div>
+          </dl>
+        </section>
+        <div className="explorer-detail-extra"><SchoolExtra key={p.id} school={school} onOpen={(f) => onOpen(mapSchoolFeature(f))} /></div>
+      </div>
+      <div className="explorer-detail-actions"><button disabled={compared || compareFull} onClick={onCompare}>{compared ? "Sudah ditambahkan" : compareFull ? "Maksimal 3 sekolah" : "+ Tambah ke perbandingan"}</button></div>
+    </section>
+  );
+}
+
 export default function EksplorasiPeta() {
   const {
-    activeLayers,
-    toggleLayer,
     flyToRegion,
     comparedSchools,
     setIsCompareOpen,
@@ -106,31 +143,52 @@ export default function EksplorasiPeta() {
     selectedWilayahId,
     setSelectedWilayahId,
     flyToBounds,
-  } = useMapStore();
-  const { sekolah, kecamatan, prioritas, ringkasan, loaded, loading, error, loadPublic } = useDataStore();
+  } = useMapStore(useShallow((state) => ({flyToRegion: state.flyToRegion,comparedSchools: state.comparedSchools,setIsCompareOpen: state.setIsCompareOpen,setSelectedFeature: state.setSelectedFeature,addToCompare: state.addToCompare,selectedWilayahId: state.selectedWilayahId,setSelectedWilayahId: state.setSelectedWilayahId,flyToBounds: state.flyToBounds})));
+  const { sekolah, kecamatan, ringkasan, loaded, loading, error, loadPublic } = useDataStore();
+  const { population, blankSpots, needs, loading: geographicLoading, errors: geographicErrors, retry: retryGeography } = useBogorLayers();
 
   useEffect(() => {
     if (!useDataStore.getState().loaded) loadPublic();
   }, [loadPublic]);
 
-  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [districtFallback, setSelectedDistrict] = useState("");
+  const selectedDistrict = selectedWilayahId ? String(selectedWilayahId) : districtFallback;
   const [searchKeyword, setSearchKeyword] = useState("");
   const [filterStatus, setFilterStatus] = useState("all"); // 'all' | 'Negeri' | 'Swasta'
-  const [activeTab, setActiveTab] = useState("search"); // 'search' | 'list' | 'layers'
+  const [activeTab, setActiveTab] = useState("list"); // 'search' | 'list' | 'layers'
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [selectedSchoolDetail, setSelectedSchoolDetail] = useState(null);
-  const [isMapLoaded, setIsMapLoaded] = useState(false);
-
-  // Klik poligon kecamatan di peta -> sinkronkan filter wilayah
-  useEffect(() => {
-    if (selectedWilayahId) setSelectedDistrict(String(selectedWilayahId));
-  }, [selectedWilayahId]);
+  const detailTriggerRef = useRef(null);
+  const resultsScrollRef = useRef(null);
+  const savedResultsScrollRef = useRef(null);
+  useLayoutEffect(() => {
+    if (!selectedSchoolDetail && savedResultsScrollRef.current !== null) {
+      if (resultsScrollRef.current) resultsScrollRef.current.scrollTop = savedResultsScrollRef.current;
+      detailTriggerRef.current?.focus({ preventScroll: true });
+      savedResultsScrollRef.current = null;
+    }
+  }, [selectedSchoolDetail]);
+  const [visibleCount, setVisibleCount] = useState(30);
+  // Kebutuhan layanan kembali menjadi tampilan utama; penduduk tetap dapat dipilih terpisah.
+  const [activeLayers, setActiveLayers] = useState({ showSchools: true, show3DBuildings: false, populationLayer: false, mcdaLayer: true, showBlankSpots: true, showCandidates: false });
+  // Dua choropleth tidak ditumpuk agar arti warna tetap jelas; area akses tetap independen.
+  const toggleLayer = (key) => setActiveLayers((layers) => ({
+    ...layers, [key]: !layers[key],
+    ...(key === 'populationLayer' && !layers[key] ? { mcdaLayer: false } : {}),
+    ...(key === 'mcdaLayer' && !layers[key] ? { populationLayer: false } : {}),
+  }));
+  const bogorSchools = useMemo(() => sekolah.features.filter((f) => isInBogor(f.geometry?.coordinates)), [sekolah]);
+  const selectedPopulation = useMemo(() => population.features.find((feature) => feature.properties.id === selectedDistrict), [population, selectedDistrict]);
 
   // Opsi kecamatan: dari poligon wilayah bila sudah ada; bila belum, dari nama kecamatan pada data sekolah
   const kecamatanOptions = useMemo(() => {
+    if (population.features.length) return population.features.map((feature) => ({
+      id: feature.properties.id, name: `${feature.properties.nama} · ${feature.properties.kabupaten_kota}`,
+      bbox: feature.bbox,
+    })).sort((a, b) => a.name.localeCompare(b.name, 'id'));
     if (kecamatan.length) return kecamatan;
     const groups = new Map();
-    sekolah.features.forEach((f) => {
+    bogorSchools.forEach((f) => {
       const n = f.properties.kecamatan;
       const c = f.geometry && f.geometry.coordinates;
       if (!n || !c) return;
@@ -139,45 +197,54 @@ export default function EksplorasiPeta() {
       groups.set(n, g);
     });
     return [...groups.values()].sort((a, b) => a.name.localeCompare(b.name, "id"));
-  }, [kecamatan, sekolah]);
+  }, [population, kecamatan, bogorSchools]);
+
+  // Uji spasial hanya diulang saat kecamatan/sekolah berubah, bukan setiap ketikan pencarian.
+  const districtSchools = useMemo(() => selectedPopulation
+    ? bogorSchools.filter((feature) => isInBoundary(feature.geometry?.coordinates, selectedPopulation))
+    : bogorSchools, [bogorSchools, selectedPopulation]);
 
   // List sekolah SMP yang terfilter
   const filteredSchools = useMemo(() => {
     const kw = searchKeyword.toLowerCase();
-    return sekolah.features.filter((f) => {
+    return districtSchools.filter((f) => {
       const p = f.properties;
       const matchKeyword = (p.nama || "").toLowerCase().includes(kw) || (p.npsn && String(p.npsn).includes(searchKeyword));
       const matchStatus = filterStatus === "all" || p.status === filterStatus;
       const matchDistrict =
-        !selectedDistrict ||
+        !selectedDistrict || selectedPopulation ||
         (String(selectedDistrict).startsWith("txt:")
           ? p.kecamatan === String(selectedDistrict).slice(4)
           : String(p.idWilayah) === String(selectedDistrict));
       return matchKeyword && matchStatus && matchDistrict;
     });
-  }, [sekolah, searchKeyword, filterStatus, selectedDistrict]);
+  }, [districtSchools, searchKeyword, filterStatus, selectedDistrict, selectedPopulation]);
 
   const filteredCollection = useMemo(() => ({ type: "FeatureCollection", features: filteredSchools }), [filteredSchools]);
 
   const pilihKecamatan = (districtId) => {
+    setVisibleCount(30);
     setSelectedDistrict(districtId);
-    setSelectedWilayahId(districtId && !String(districtId).startsWith("txt:") ? districtId : null);
+    // ID geografis bukan primary key tabel wilayah; jangan teruskan ke analisis MCDA.
+    setSelectedWilayahId(districtId && !/^(txt:|geo:)/.test(String(districtId)) ? districtId : null);
+    setSelectedFeature(null);
     const target = kecamatanOptions.find((d) => String(d.id) === String(districtId));
     if (target && target.bbox) flyToBounds(target.bbox);
   };
 
   const handleDistrictChange = (e) => pilihKecamatan(e.target.value);
 
-  const ringkasanRadius = useDataStore((st) => (st.meta ? st.meta.radius_km : 3));
+  const ringkasanRadius = blankSpots.meta?.radius_km ?? 3;
 
   const districtFeature = useMemo(
-    () => prioritas.features.find((f) => String(f.properties.id_wilayah) === String(selectedDistrict)),
-    [prioritas, selectedDistrict]
+    () => needs.features.find((f) => String(f.properties.id_wilayah) === String(selectedDistrict)),
+    [needs, selectedDistrict]
   );
 
   const handleSelectSchool = (schoolFeature) => {
     const [lng, lat] = schoolFeature.geometry.coordinates;
     flyToRegion(lng, lat, 16.5);
+    if (window.innerWidth < 768) setIsSidebarOpen(false);
     setSelectedFeature({
       longitude: lng,
       latitude: lat,
@@ -186,11 +253,23 @@ export default function EksplorasiPeta() {
   };
 
   const openSchoolDetail = (schoolFeature) => {
+    if (!selectedSchoolDetail) {
+      detailTriggerRef.current = document.activeElement;
+      savedResultsScrollRef.current = resultsScrollRef.current?.scrollTop || 0;
+    }
     setSelectedSchoolDetail(schoolFeature);
-    handleSelectSchool(schoolFeature);
+    setIsSidebarOpen(true);
+    setSelectedFeature(null);
+    const [lng, lat] = schoolFeature.geometry.coordinates;
+    flyToBounds([lng, lat, lng, lat]);
+  };
+
+  const backToResults = () => {
+    setSelectedSchoolDetail(null);
   };
 
   const resetFilters = () => {
+    setVisibleCount(30);
     setSearchKeyword("");
     setFilterStatus("all");
     setSelectedDistrict("");
@@ -198,88 +277,32 @@ export default function EksplorasiPeta() {
   };
 
   return (
-    <div className="relative w-full h-screen bg-[#F8FAFC] overflow-hidden flex flex-col font-sans select-none">
-      {/* ================= TOP EDITORIAL NAVIGATION HEADER ================= */}
-      <header className="absolute top-4 left-4 right-4 z-30 pointer-events-none flex items-center justify-between">
-        {/* Brand & Navigasi Kiri */}
-        <div className="flex items-center gap-2 pointer-events-auto">
-          <Link
-            to="/"
-            className="flex items-center gap-2 px-3.5 py-2.5 bg-white/95 hover:bg-white text-slate-700 hover:text-[#1F6F5F] rounded-2xl shadow-md border border-slate-200/80 backdrop-blur-md transition-all text-xs font-semibold group"
-            title="Kembali ke Beranda"
-          >
-            <ArrowLeft size={15} className="group-hover:-translate-x-0.5 transition-transform" />
-            <span className="hidden sm:inline">Beranda</span>
-          </Link>
-
-          <div className="flex items-center gap-2.5 px-4 py-2 bg-white/95 rounded-2xl shadow-md border border-slate-200/80 backdrop-blur-md">
-            <img src={logo} alt="SADAR EDU" className="w-7 h-7 object-contain" />
-            <div>
-              <div className="flex items-center gap-2">
-                <ShinyText text="SADAR EDU" className="font-bold text-xs tracking-tight" />
-                <span className="bg-[#1F6F5F]/10 text-[#1F6F5F] text-[10px] font-bold px-2 py-0.5 rounded-md">
-                  SMP Kabupaten Bogor
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-400">Peta geospasial & profil fasilitas SMP Kabupaten Bogor</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Kanan: Toggle Panel & Login Pengelola */}
-        <div className="flex items-center gap-2 pointer-events-auto">
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-2xl shadow-md border text-xs font-semibold backdrop-blur-md transition-all ${
-              isSidebarOpen
-                ? "bg-[#1F6F5F] text-white border-[#1F6F5F] hover:bg-emerald-800"
-                : "bg-white/95 text-slate-700 border-slate-200/80 hover:bg-white"
-            }`}
-          >
-            <SlidersHorizontal size={14} />
-            <span className="hidden sm:inline">{isSidebarOpen ? "Sembunyikan Panel" : "Buka Eksplorasi"}</span>
-          </button>
-
-          <Link
-            to="/login"
-            className="flex items-center gap-1.5 px-4 py-2.5 bg-white/95 hover:bg-white text-slate-700 hover:text-[#1F6F5F] rounded-2xl shadow-md border border-slate-200/80 backdrop-blur-md transition-all text-xs font-semibold"
-          >
-            <span>Masuk Pengelola</span>
-            <ExternalLink size={13} className="text-slate-400" />
-          </Link>
-        </div>
-      </header>
-
-      {/* ================= LEFT FLOATING WORKSPACE PANEL ================= */}
-      <div
-        className={`absolute top-20 left-4 bottom-5 z-20 w-88 sm:w-[420px] transition-all duration-300 pointer-events-none flex flex-col ${
-          isSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-[110%] opacity-0"
-        }`}
-      >
-        <div className="bg-white/95 backdrop-blur-xl border border-slate-200/90 rounded-3xl shadow-2xl flex flex-col h-full overflow-hidden pointer-events-auto">
+    <div className={`explorer relative w-full overflow-hidden flex flex-col font-sans ${isSidebarOpen ? "panel-open" : ""}`}>
+      <nav className="explorer-floating-nav" aria-label="Navigasi peta">
+        <button className={isSidebarOpen ? "is-active" : ""} onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-expanded={isSidebarOpen} aria-controls="explorer-panel"><School size={16} /> Jelajahi</button>
+        <Link to="/">Beranda</Link>
+      </nav>
+      <Link to="/login" className="explorer-floating-login">Masuk pengelola <ChevronRight size={15} /></Link>
+      <aside id="explorer-panel" aria-label="Pencarian sekolah" className={`explorer-panel ${isSidebarOpen ? "is-open" : "is-closed"}`} inert={!isSidebarOpen}>
+        <div className="explorer-panel-inner">
+          <div className="explorer-results-view" hidden={Boolean(selectedSchoolDetail)}>
           {/* Header Panel */}
-          <div className="p-4 pb-3 border-b border-slate-100 bg-slate-50/70">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-                <Compass size={13} className="text-[#1F6F5F]" /> Persempit Pencarian
-              </span>
-              <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100">
-                {filteredSchools.length} Sekolah Terdaftar
-              </span>
-            </div>
-
+          <div className="explorer-search-head">
+            <h1><School size={16} /> Daftar sekolah <button onClick={() => setIsSidebarOpen(false)} aria-label="Tutup panel"><X size={16} /></button></h1>
             {/* Field Search */}
             <div className="relative">
               <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
+                onChange={(e) => { setSearchKeyword(e.target.value); setVisibleCount(30); }}
+                aria-label="Cari nama sekolah atau NPSN"
                 placeholder="Cari nama sekolah atau NPSN..."
                 className="w-full pl-9 pr-8 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1F6F5F]/30 focus:border-[#1F6F5F] transition-all shadow-sm"
               />
               {searchKeyword && (
                 <button
+                  aria-label="Hapus pencarian"
                   onClick={() => setSearchKeyword("")}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-full"
                 >
@@ -289,9 +312,9 @@ export default function EksplorasiPeta() {
             </div>
 
             {/* Navigasi 3 Tab */}
-            <div className="flex gap-1 mt-3 bg-slate-200/70 p-1 rounded-xl">
+            <div className="explorer-tabs">
               <button
-                onClick={() => setActiveTab("search")}
+                aria-pressed={activeTab === "search"} onClick={() => setActiveTab("search")}
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   activeTab === "search"
                     ? "bg-white text-[#1F6F5F] shadow-sm"
@@ -301,7 +324,7 @@ export default function EksplorasiPeta() {
                 <SlidersHorizontal size={13} /> Filter
               </button>
               <button
-                onClick={() => setActiveTab("list")}
+                aria-pressed={activeTab === "list"} onClick={() => setActiveTab("list")}
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   activeTab === "list"
                     ? "bg-white text-[#1F6F5F] shadow-sm"
@@ -311,7 +334,7 @@ export default function EksplorasiPeta() {
                 <School size={13} /> Daftar ({filteredSchools.length})
               </button>
               <button
-                onClick={() => setActiveTab("layers")}
+                aria-pressed={activeTab === "layers"} onClick={() => setActiveTab("layers")}
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
                   activeTab === "layers"
                     ? "bg-white text-[#1F6F5F] shadow-sm"
@@ -324,17 +347,36 @@ export default function EksplorasiPeta() {
           </div>
 
           {/* Konten Scrollable */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          <div ref={resultsScrollRef} key={activeTab} className="explorer-panel-content space-y-4">
+            {activeLayers.mcdaLayer && !needs.features.length && <p className="text-xs text-slate-500" role={geographicErrors.needs ? 'alert' : 'status'}>
+              {geographicErrors.needs ? <>Kebutuhan gagal dimuat. <button className="underline" onClick={retryGeography}>Coba lagi</button></> : 'Menghitung kebutuhan layanan pada batas kecamatan…'}
+            </p>}
+            {/* Diagnosis memakai simulasi backend; data kosong tetap ditampilkan sebagai belum dinilai. */}
+            {districtFeature && activeLayers.mcdaLayer && activeTab !== 'layers' && <section className="explorer-population-summary" aria-label="Kebutuhan layanan kecamatan" aria-live="polite">
+              <div><h2>{districtFeature.properties.nama_wilayah}</h2><button onClick={() => pilihKecamatan('')} aria-label="Hapus filter kecamatan"><X size={15} /></button></div>
+              <p>{districtFeature.properties.kabupaten_kota} · Simulasi {needs.meta?.tahun}</p>
+              <div className="mt-3"><KategoriBadge kategori={districtFeature.properties.kategori_prioritas} />
+                <span className="text-xs">{districtFeature.properties.skor_total === null ? 'Belum cukup data' : `${fmtNum(districtFeature.properties.skor_total, 1)} / 100`}</span></div>
+              <p className="mt-3">{districtFeature.properties.diagnosis}</p>
+            </section>}
+            {/* Angka tahun dan sumber mengikuti kecamatan, bukan ringkasan data sekolah demo. */}
+            {selectedPopulation && activeLayers.populationLayer && activeTab !== 'layers' && <section className="explorer-population-summary" aria-label="Penduduk kecamatan terpilih">
+              <div><h2>{selectedPopulation.properties.nama}</h2><button onClick={() => pilihKecamatan('')} aria-label="Hapus filter kecamatan"><X size={15} /></button></div>
+              <p>{selectedPopulation.properties.kabupaten_kota}</p>
+              <strong>{fmtNum(selectedPopulation.properties.penduduk)} <span>jiwa · 2024</span></strong>
+              <a href={selectedPopulation.properties.sumber_penduduk} target="_blank" rel="noreferrer">Sumber penduduk: BPS ↗</a>
+            </section>}
             {/* TAB 1: FILTER WILAYAH DAN STATUS */}
             {activeTab === "search" && (
               <div className="space-y-4">
                 {/* Wilayah / Kecamatan */}
                 <div>
                   <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                    Kecamatan (Kabupaten Bogor)
+                    Kecamatan
                   </label>
                   <div className="relative">
                     <select
+                      aria-label="Kecamatan"
                       value={selectedDistrict}
                       onChange={handleDistrictChange}
                       className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-[#1F6F5F]/30 focus:border-[#1F6F5F] cursor-pointer shadow-sm appearance-none transition-all"
@@ -391,81 +433,13 @@ export default function EksplorasiPeta() {
                   </div>
                 </div>
 
-                {/* Quick District Chips */}
-                <div>
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                    Jalan Pintas Wilayah
-                  </label>
-                  <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto pr-1">
-                    {kecamatanOptions.map((d) => (
-                      <button
-                        key={d.id}
-                        onClick={() => pilihKecamatan(d.id)}
-                        className={`text-[11px] font-medium px-2.5 py-1.5 rounded-xl border transition-all ${
-                          selectedDistrict === d.id
-                            ? "bg-emerald-50 border-emerald-300 text-emerald-800 font-bold shadow-xs"
-                            : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
-                        }`}
-                      >
-                        {d.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Kondisi layanan pendidikan di kecamatan terpilih */}
-                {districtFeature && (
-                  <div className="p-3.5 bg-white border border-slate-200 rounded-2xl space-y-2 shadow-sm" aria-live="polite">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-xs font-bold text-slate-800">Kondisi layanan SMP: Kec. {districtFeature.properties.nama_wilayah}</p>
-                      <KategoriBadge kategori={districtFeature.properties.kategori_prioritas} />
-                    </div>
-                    {districtFeature.properties.diagnosis ? (
-                      <p className="text-[11px] text-slate-600 leading-relaxed">{districtFeature.properties.diagnosis}</p>
-                    ) : (
-                      <p className="text-[11px] text-slate-400">Analisis untuk kecamatan ini belum tersedia.</p>
-                    )}
-                    <p className="text-[10px] text-slate-400">
-                      Kategori menunjukkan tingkat kebutuhan layanan, bukan penilaian mutu sekolah. {fmtNum(filteredSchools.length)} sekolah ditampilkan.
-                    </p>
-                  </div>
-                )}
-
-                {/* Tip Navigasi 3D */}
-                <div className="p-3.5 bg-gradient-to-br from-emerald-50/80 to-teal-50/40 border border-emerald-100 rounded-2xl text-slate-700 space-y-1.5">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-[#1F6F5F]">
-                    <Sparkles size={14} /> Tip Navigasi 3D
-                  </div>
-                  <p className="text-[11px] leading-relaxed text-slate-600">
-                    Gunakan <strong>Klik Kanan + Tarik Mouse</strong> untuk memiringkan kamera (*pitch 3D*) atau putar sudut pandang wilayah Bogor.
-                  </p>
-                </div>
               </div>
             )}
 
             {/* TAB 2: DAFTAR SEKOLAH BERGAYA CARD FIGMA */}
             {activeTab === "list" && (
               <div className="space-y-3">
-                {/* Ringkasan Hasil */}
-                <div className="grid grid-cols-3 gap-2 p-3 bg-slate-50 border border-slate-200/80 rounded-2xl text-center">
-                  <div>
-                    <strong className="block text-base font-bold text-slate-800">
-                      <AnimatedCounter to={filteredSchools.length} />
-                    </strong>
-                    <small className="text-[10px] text-slate-400 font-medium">Total Hasil</small>
-                  </div>
-                  <div>
-                    <strong className="block text-base font-bold text-[#1F6F5F]">
-                      <AnimatedCounter to={filteredSchools.length} />
-                    </strong>
-                    <small className="text-[10px] text-slate-400 font-medium">Terpetakan</small>
-                  </div>
-                  <div>
-                    <strong className="block text-base font-bold text-slate-400">0</strong>
-                    <small className="text-[10px] text-slate-400 font-medium">Tanpa Titik</small>
-                  </div>
-                </div>
-
+                <p className="explorer-result-count">{filteredSchools.length} sekolah sesuai pencarian</p>
                 {filteredSchools.length === 0 ? (
                   <div className="text-center py-10 px-4 text-slate-400">
                     <p className="text-xs font-medium">Tidak ada sekolah yang cocok dengan filter aktif.</p>
@@ -477,87 +451,26 @@ export default function EksplorasiPeta() {
                     </button>
                   </div>
                 ) : (
-                  filteredSchools.map((item, idx) => {
+                  filteredSchools.slice(0, visibleCount).map((item) => {
                     const isCompared = comparedSchools.some(
                       (s) => s.id === item.properties.id
                     );
-                    const photo = schoolImages[idx % schoolImages.length];
+
 
                     return (
-                      <SpotlightCard
-                        key={item.properties.id}
-                        className="bg-white border border-slate-200/80 hover:border-emerald-300 rounded-2xl shadow-sm hover:shadow-md transition-all group"
-                        spotlightColor="rgba(31, 111, 95, 0.15)"
-                      >
-                        {/* Gambar Sekolah */}
-                        <div className="h-28 relative overflow-hidden bg-slate-100">
-                          <img
-                            src={photo}
-                            alt={item.properties.nama}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          <span className="absolute bottom-2 right-2 text-[9px] font-semibold text-white bg-slate-900/60 backdrop-blur-xs px-2 py-0.5 rounded">
-                            Foto ilustrasi
-                          </span>
-                          <span
-                            className={`absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm ${
-                              item.properties.status === "Negeri"
-                                ? "bg-emerald-600 text-white"
-                                : "bg-amber-500 text-white"
-                            }`}
-                          >
-                            {item.properties.status}
-                          </span>
-                        </div>
-
-                        {/* Card Body */}
-                        <div className="p-3.5 space-y-2">
-                          <div>
-                            <h3 className="font-bold text-sm text-slate-800 group-hover:text-[#1F6F5F] transition-colors">
-                              {item.properties.nama}
-                            </h3>
-                            <p className="text-[11px] text-slate-400 mt-0.5">
-                              NPSN: {item.properties.npsn} • Akreditasi {item.properties.akreditasi || "-"}
-                            </p>
-                            <p className="text-[11px] text-slate-500">
-                              {fmtNum(item.properties.jumlahSiswa)} Siswa • {fmtNum(item.properties.ruangKelas)} Kelas
-                            </p>
-                          </div>
-
-                          <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
-                            <button
-                              onClick={() => openSchoolDetail(item)}
-                              className="text-xs font-semibold text-[#1F6F5F] hover:text-emerald-800 flex items-center gap-1"
-                            >
-                              Detail profil <ChevronRight size={13} />
-                            </button>
-
-                            <div className="flex items-center gap-1.5">
-                              <button
-                                onClick={() => handleSelectSchool(item)}
-                                className="p-1.5 bg-slate-100 hover:bg-[#1F6F5F] text-slate-600 hover:text-white rounded-lg transition-colors"
-                                title="Fokuskan di Peta"
-                              >
-                                <Maximize2 size={13} />
-                              </button>
-                              <button
-                                onClick={() => addToCompare(item.properties)}
-                                disabled={isCompared}
-                                className={`text-[11px] px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                                  isCompared
-                                    ? "bg-slate-100 text-slate-400 cursor-not-allowed"
-                                    : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100"
-                                }`}
-                              >
-                                {isCompared ? "✓ Dibandingkan" : "+ Banding"}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </SpotlightCard>
+                      <article key={item.properties.id} className="explorer-school">
+                        <div className="explorer-school-icon"><School size={19} /></div>
+                        <button className="explorer-school-info" onClick={() => openSchoolDetail(item)}>
+                          <h3>{item.properties.nama}</h3>
+                          <p>{item.properties.kecamatan || "Kabupaten Bogor"} · {item.properties.status}</p>
+                          {isCompared && <small>Dalam perbandingan</small>}
+                        </button>
+                        <button onClick={() => handleSelectSchool(item)} className="explorer-school-focus" title="Fokuskan di peta" aria-label={`Fokuskan ${item.properties.nama} di peta`}><Maximize2 size={16} /></button>
+                      </article>
                     );
                   })
                 )}
+                {filteredSchools.length > visibleCount && <button className="explorer-results-button" onClick={() => setVisibleCount((count) => count + 30)}>Tampilkan lebih banyak <ChevronDown size={16} /></button>}
               </div>
             )}
 
@@ -566,17 +479,27 @@ export default function EksplorasiPeta() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-                    Visibilitas Objek Geospasial
+                    Tampilan peta
                   </label>
                   <div className="space-y-2">
+                    {/* Jumlah penduduk adalah lapisan tersendiri, bukan pengganti skor kebutuhan. */}
+                    <label className="explorer-population-toggle">
+                      <div><p>Penduduk per kecamatan</p><small>Jumlah jiwa · 2024 · 46 kecamatan</small></div>
+                      <input type="checkbox" checked={activeLayers.populationLayer} onChange={() => toggleLayer('populationLayer')} />
+                    </label>
+                    {geographicLoading && <p className="text-xs text-slate-500" role="status">Memuat batas wilayah dan area akses…</p>}
+                    {(geographicErrors.population || geographicErrors.access || geographicErrors.needs) && <div className="text-xs text-red-700" role="alert">
+                      <p>Lapisan gagal dimuat: {geographicErrors.needs || geographicErrors.population || geographicErrors.access}</p>
+                      <button onClick={retryGeography} className="underline mt-2">Coba lagi</button>
+                    </div>}
                     <label className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-2xl cursor-pointer hover:bg-slate-50 transition">
                       <div className="flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-xl bg-emerald-50 text-[#1F6F5F] flex items-center justify-center">
                           <Building2 size={16} />
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-slate-800">Bangunan 3D Extrusion</p>
-                          <p className="text-[10px] text-slate-400">Model elevasi massa bangunan</p>
+                          <p className="text-xs font-semibold text-slate-800">Bangunan 3D</p>
+                          <p className="text-[10px] text-slate-400">Detail bangunan saat diperbesar</p>
                         </div>
                       </div>
                       <input
@@ -611,13 +534,15 @@ export default function EksplorasiPeta() {
                           <Layers size={16} />
                         </div>
                         <div>
-                          <p className="text-xs font-semibold text-slate-800">Poligon Kebutuhan Wilayah</p>
-                          <p className="text-[10px] text-slate-400">Choropleth defisit & prioritas</p>
+                          <p className="text-xs font-semibold text-slate-800">Kebutuhan layanan SMP</p>
+                          <p className="text-[10px] text-slate-500">Simulasi 7 indikator backend · Skor 0–100</p>
+                          {!geographicLoading && !needs.features.length && <p className="text-[11px] text-slate-500 mt-1">Skor kebutuhan belum tersedia.</p>}
                         </div>
                       </div>
                       <input
                         type="checkbox"
                         checked={activeLayers?.mcdaLayer || false}
+                        disabled={!needs.features.length}
                         onChange={() => toggleLayer("mcdaLayer")}
                         className="w-4 h-4 rounded accent-[#1F6F5F] cursor-pointer"
                       />
@@ -630,7 +555,8 @@ export default function EksplorasiPeta() {
                         </div>
                         <div>
                           <p className="text-xs font-semibold text-slate-800">Area Minim Akses Sekolah</p>
-                          <p className="text-[10px] text-slate-400">Di luar jangkauan {ringkasanRadius} km dari sekolah</p>
+                          <p className="text-[10px] text-slate-500">Di luar radius lurus {ringkasanRadius} km dari titik sekolah</p>
+                          {!geographicLoading && !geographicErrors.access && !blankSpots.features.length && <p className="text-[11px] text-slate-500 mt-1">Tidak ada area di luar radius pada hasil ini.</p>}
                         </div>
                       </div>
                       <input
@@ -643,13 +569,27 @@ export default function EksplorasiPeta() {
                   </div>
                 </div>
 
-                {/* Legenda Tingkat Kebutuhan Layanan */}
-                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
+                {activeLayers.populationLayer && <section className="explorer-population-legend" aria-label="Legenda jumlah penduduk">
+                  <h3>Jumlah penduduk · 2024</h3>
+                  <p>Hijau: lebih sedikit. Kuning: menengah. Merah: lebih banyak.</p>
+                  <ul>{POPULATION_BANDS.map((band) => <li key={band.min}><span style={{ backgroundColor: band.color }} />{band.label} jiwa</li>)}</ul>
+                  <p>Jumlah total, bukan kepadatan atau tingkat kebutuhan sekolah.</p>
+                  <details><summary>Sumber & metode</summary>
+                    <p><a href={population.meta?.sources.kabupaten.url} target="_blank" rel="noreferrer">Kabupaten: estimasi BPS ↗</a></p>
+                    <p><a href={population.meta?.sources.kota.url} target="_blank" rel="noreferrer">Kota: catatan Disdukcapil via BPS ↗</a></p>
+                    <p>Keduanya tahun 2024, dengan metode pencatatan berbeda.</p>
+                    <p>Batas kecamatan, kabupaten, dan kota memakai satu coverage BIG, edisi 2022 (revisi 27 Desember 2022). Penyederhanaan menjaga sisi bersama tetap tersambung.</p>
+                  </details>
+                </section>}
+                {activeLayers.showBlankSpots && <p className="explorer-access-note"><span /> Garis biru putus-putus: area di luar radius {ringkasanRadius} km. {ringkasan?.menggunakan_data_demo ? 'Simulasi memakai titik sekolah demo.' : 'Berdasarkan titik sekolah yang tercatat.'} Bukan jarak perjalanan atau bukti tidak ada sekolah.</p>}
+
+                {/* Legenda MCDA hanya tampil saat layer tersebut aktif. */}
+                {activeLayers.mcdaLayer && <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl">
                   <span className="text-[11px] font-bold text-slate-600 block mb-2">
                     Tingkat Kebutuhan Layanan SMP per Kecamatan
                   </span>
                   <ul className="space-y-1.5">
-                    {[["Sangat Tinggi", "Sangat butuh tambahan layanan"], ["Tinggi", "Butuh tambahan layanan"], ["Sedang", "Perlu dipantau"], ["Rendah", "Layanan relatif memadai"]].map(([k, d]) => (
+                    {[["Sangat Tinggi", "Skor ≥ 75"], ["Tinggi", "55–<75"], ["Sedang", "35–<55"], ["Rendah", "<35"], ["Belum dihitung", "Belum cukup data"]].map(([k, d]) => (
                       <li key={k} className="flex items-center gap-2 text-[11px] text-slate-600">
                         <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: colorOf(k) }} />
                         <strong className="text-slate-700">{k}</strong> <span className="text-slate-400">— {d}</span>
@@ -657,9 +597,13 @@ export default function EksplorasiPeta() {
                     ))}
                   </ul>
                   <p className="text-[10px] text-slate-400 mt-2 leading-snug">
-                    Dihitung dari beban siswa per kelas dan guru, kapasitas terhadap jumlah penduduk usia SMP, serta jarak dan jangkauan ke sekolah.
+                    Simulasi data demo pada batas kecamatan baru. Skor relatif antarwilayah, bukan penilaian mutu sekolah. Kota Bogor belum memiliki data usia SMP untuk perhitungan ini.
                   </p>
-                </div>
+                  <details className="text-[11px] mt-3"><summary className="cursor-pointer text-[#1f6f5f]">Indikator & bobot</summary>
+                    <ul className="mt-2 space-y-2">{needs.meta?.indikator.map((indicator) => <li key={indicator.kode} className="flex justify-between gap-3"><span>{indicator.nama}</span><strong>{fmtNum(indicator.bobot * 100)}%</strong></li>)}</ul>
+                    {needs.meta && <p className="text-slate-500 mt-3">Kebutuhan kursi = usia SMP × {fmtNum(needs.meta.parameter.target_apk * 100)}%; kapasitas kelas tercatat = ruang kelas × {needs.meta.parameter.siswa_per_rombel}. Nilai dinormalisasi dan dijumlahkan sesuai bobot.</p>}
+                  </details>
+                </div>}
               </div>
             )}
           </div>
@@ -667,8 +611,8 @@ export default function EksplorasiPeta() {
           {/* Footer Status Panel */}
           <div className="p-3 border-t border-slate-100 bg-slate-50/80 flex items-center justify-between text-[11px] text-slate-500">
             <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              Peta Bogor Aktif
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              Bogor · Kabupaten & Kota
             </span>
             <button
               onClick={resetFilters}
@@ -677,182 +621,24 @@ export default function EksplorasiPeta() {
               <RotateCcw size={12} /> Reset Filter
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* ================= MODAL DETAIL SEKOLAH ================= */}
-      {selectedSchoolDetail && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col">
-            {/* Modal Header */}
-            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-              <div className="flex items-center gap-2">
-                <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${
-                  selectedSchoolDetail.properties.status === "Negeri"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : "bg-amber-100 text-amber-800"
-                }`}>
-                  {selectedSchoolDetail.properties.status}
-                </span>
-                <span className="text-xs text-slate-400">
-                  NPSN {selectedSchoolDetail.properties.npsn}
-                </span>
-              </div>
-              <button
-                onClick={() => setSelectedSchoolDetail(null)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-200/50 transition"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="overflow-y-auto p-5 space-y-4">
-              {/* Gambar Hero Sekolah */}
-              <div className="relative h-44 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200">
-                <img
-                  src={schoolHero}
-                  alt={selectedSchoolDetail.properties.nama}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-transparent to-transparent flex items-end p-4">
-                  <div>
-                    <h2 className="text-xl font-bold text-white leading-tight">
-                      {selectedSchoolDetail.properties.nama}
-                    </h2>
-                    <p className="text-xs text-white/80 mt-0.5">
-                      {[selectedSchoolDetail.properties.desa, selectedSchoolDetail.properties.kecamatan && `Kec. ${selectedSchoolDetail.properties.kecamatan}`, selectedSchoolDetail.properties.kabupatenKota].filter(Boolean).join(", ") || "Bogor"} • Akreditasi {selectedSchoolDetail.properties.akreditasi || "-"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Peringatan Verifikasi Data */}
-              <div className="p-3 bg-amber-50/80 border border-amber-200/80 rounded-2xl flex items-center gap-2 text-xs text-amber-800">
-                <AlertTriangle size={16} className="text-amber-600 shrink-0" />
-                <span>Data dapat berbeda dari kondisi terkini; konfirmasi langsung ke pihak sekolah. Statistik tahun {selectedSchoolDetail.properties.tahunStatistik || "-"}.</span>
-              </div>
-
-              {/* Metrik Statistik Sekolah */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-center">
-                  <span className="text-xs text-slate-400 block font-medium">Peserta Didik</span>
-                  <strong className="text-lg font-bold text-[#1F6F5F]">
-                    {selectedSchoolDetail.properties.jumlahSiswa === null ? "-" : <AnimatedCounter to={selectedSchoolDetail.properties.jumlahSiswa} />}
-                  </strong>
-                </div>
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-center">
-                  <span className="text-xs text-slate-400 block font-medium">Tenaga Pendidik</span>
-                  <strong className="text-lg font-bold text-[#1F6F5F]">
-                    {selectedSchoolDetail.properties.jumlahGuru === null ? "-" : <AnimatedCounter to={selectedSchoolDetail.properties.jumlahGuru} />}
-                  </strong>
-                </div>
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-center">
-                  <span className="text-xs text-slate-400 block font-medium">Ruang Kelas</span>
-                  <strong className="text-lg font-bold text-[#1F6F5F]">
-                    {selectedSchoolDetail.properties.ruangKelas === null ? "-" : <AnimatedCounter to={selectedSchoolDetail.properties.ruangKelas} />}
-                  </strong>
-                </div>
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-2xl text-center">
-                  <span className="text-xs text-slate-400 block font-medium">Rasio Guru-Siswa</span>
-                  <strong className="text-lg font-bold text-[#1F6F5F]">
-                    {rasio(selectedSchoolDetail.properties.jumlahSiswa, selectedSchoolDetail.properties.jumlahGuru)}
-                  </strong>
-                </div>
-              </div>
-
-              {[selectedSchoolDetail.properties.kelasBaik, selectedSchoolDetail.properties.kelasRusakRingan, selectedSchoolDetail.properties.kelasRusakSedang, selectedSchoolDetail.properties.kelasRusakBerat].some((v) => v !== null) && (
-                <div className="bg-white border border-slate-200 rounded-2xl p-4">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Kondisi Ruang Kelas</h4>
-                  <div className="grid grid-cols-4 gap-2 text-center">
-                    {[["Baik", selectedSchoolDetail.properties.kelasBaik, "text-emerald-700 bg-emerald-50"],
-                      ["Rusak ringan", selectedSchoolDetail.properties.kelasRusakRingan, "text-yellow-700 bg-yellow-50"],
-                      ["Rusak sedang", selectedSchoolDetail.properties.kelasRusakSedang, "text-orange-700 bg-orange-50"],
-                      ["Rusak berat", selectedSchoolDetail.properties.kelasRusakBerat, "text-red-700 bg-red-50"]].map(([label, v, cls]) => (
-                      <div key={label} className={`rounded-xl py-2 ${cls}`}>
-                        <strong className="block text-base">{fmtNum(v)}</strong>
-                        <span className="text-[10px] font-medium">{label}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <SchoolExtra school={selectedSchoolDetail} onOpen={(f) => openSchoolDetail(mapSchoolFeature(f))} />
-
-              {/* Fakta & Informasi */}
-              <div className="bg-slate-50/70 border border-slate-100 rounded-2xl p-4 space-y-2">
-                <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                  Informasi Sekolah
-                </h4>
-                <div className="flex justify-between text-xs py-1 border-b border-slate-200/60">
-                  <span className="text-slate-500">Nama Resmi</span>
-                  <strong className="text-slate-800">{selectedSchoolDetail.properties.nama}</strong>
-                </div>
-                <div className="flex justify-between text-xs py-1 border-b border-slate-200/60">
-                  <span className="text-slate-500">NPSN</span>
-                  <strong className="text-slate-800">{selectedSchoolDetail.properties.npsn}</strong>
-                </div>
-                {selectedSchoolDetail.properties.desa && (
-                  <div className="flex justify-between text-xs py-1 border-b border-slate-200/60">
-                    <span className="text-slate-500">Desa / Kelurahan</span>
-                    <strong className="text-slate-800">{selectedSchoolDetail.properties.desa}</strong>
-                  </div>
-                )}
-                <div className="flex justify-between text-xs py-1 border-b border-slate-200/60">
-                  <span className="text-slate-500">Status Pengelolaan</span>
-                  <strong className="text-slate-800">{selectedSchoolDetail.properties.status}</strong>
-                </div>
-                <div className="flex justify-between text-xs py-1">
-                  <span className="text-slate-500">Koordinat SIG</span>
-                  <strong className="text-slate-800 font-mono text-[11px]">
-                    {selectedSchoolDetail.geometry.coordinates[1].toFixed(4)}, {selectedSchoolDetail.geometry.coordinates[0].toFixed(4)}
-                  </strong>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
-              <button
-                onClick={() => {
-                  addToCompare(selectedSchoolDetail.properties);
-                  setSelectedSchoolDetail(null);
-                }}
-                className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-200 transition"
-              >
-                + Tambah ke Perbandingan
-              </button>
-              <button
-                onClick={() => setSelectedSchoolDetail(null)}
-                className="px-4 py-2 bg-[#1F6F5F] hover:bg-emerald-800 text-white text-xs font-bold rounded-xl transition"
-              >
-                Tutup Pratinjau
-              </button>
-            </div>
           </div>
+          {selectedSchoolDetail && <SchoolDetail
+            key={selectedSchoolDetail.properties.id}
+            school={selectedSchoolDetail}
+            onBack={backToResults}
+            onClose={() => setIsSidebarOpen(false)}
+            onFocus={() => { const [lng, lat] = selectedSchoolDetail.geometry.coordinates; flyToBounds([lng, lat, lng, lat]); }}
+            onCompare={() => addToCompare(selectedSchoolDetail.properties)}
+            compared={comparedSchools.some((school) => school.id === selectedSchoolDetail.properties.id)}
+            compareFull={comparedSchools.length >= 3}
+            onOpen={openSchoolDetail}
+          />}
         </div>
-      )}
-
-      {/* ================= FLOATING BOTTOM LEGEND ================= */}
-      <div className="absolute bottom-5 left-4 z-10 pointer-events-none hidden md:block">
-        <div className="bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl shadow-lg border border-slate-200/80 pointer-events-auto flex items-center gap-4 text-xs">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#1F6F5F] ring-2 ring-emerald-200 inline-block" />
-            <span className="text-slate-700 font-medium">Negeri</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B] ring-2 ring-amber-200 inline-block" />
-            <span className="text-slate-700 font-medium">Swasta</span>
-          </div>
-          <div className="h-3 w-px bg-slate-200" />
-          <span className="text-[11px] text-slate-400">Klik titik sekolah untuk aksi cepat</span>
-        </div>
-      </div>
+      </aside>
 
       {/* ================= FLOATING BUTTON PERBANDINGAN ================= */}
       {comparedSchools.length > 0 && (
-        <div className="absolute bottom-6 right-16 z-20 animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="explorer-compare">
           <button
             onClick={() => setIsCompareOpen(true)}
             className="bg-[#1F6F5F] hover:bg-emerald-800 text-white font-medium px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-xs transition-all transform hover:scale-105 border border-emerald-400/30 backdrop-blur-md"
@@ -869,7 +655,7 @@ export default function EksplorasiPeta() {
 
       {/* ================= STATUS DATA ================= */}
       {(error || (loading && !loaded) || ringkasan?.menggunakan_data_demo || (loaded && !ringkasan?.sekolah)) && (
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 z-30 max-w-xl w-[92%] space-y-2 pointer-events-none">
+        <div className="explorer-data-status space-y-2">
           {loading && !loaded && (
             <div className="pointer-events-auto bg-white/95 border border-slate-200 text-slate-600 text-xs rounded-xl px-4 py-2.5 shadow" role="status">Memuat data peta...</div>
           )}
@@ -881,7 +667,7 @@ export default function EksplorasiPeta() {
           )}
           {ringkasan?.menggunakan_data_demo && (
             <div className="pointer-events-auto bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-xl px-4 py-2.5 shadow">
-              <strong>Data demo.</strong> Peta dan angka berasal dari dataset sintetis, bukan data resmi.
+              <strong>Simulasi kebutuhan & akses</strong><span> · Data sekolah dan usia SMP demo.</span>
             </div>
           )}
           {loaded && !ringkasan?.sekolah && !error && (
@@ -893,8 +679,10 @@ export default function EksplorasiPeta() {
       )}
 
       {/* ================= MAP CANVAS ================= */}
-      <main className="flex-1 w-full h-full relative">
-        <MapCanvas onMapLoaded={() => setIsMapLoaded(true)} schools={filteredCollection} />
+      <main className="explorer-map">
+        <Suspense fallback={<div className="explorer-map-loading" role="status">Memuat peta...</div>}>
+        <MapCanvas schools={filteredCollection} publicExplorer publicLayers={activeLayers} population={population} publicBlankSpots={blankSpots} publicNeeds={needs} selectedPopulationId={selectedPopulation?.properties.id} onDistrictSelect={(id) => { pilihKecamatan(id); setSelectedSchoolDetail(null); setActiveTab('list'); setIsSidebarOpen(true); }} panelOpen={isSidebarOpen} onSchoolSelect={openSchoolDetail} onOpenLayers={() => { setSelectedSchoolDetail(null); setActiveTab("layers"); setIsSidebarOpen(true); }} />
+        </Suspense>
       </main>
 
       {/* ================= MODAL PERBANDINGAN ================= */}

@@ -34,13 +34,23 @@ async function getIndikator(client = db) {
  * - blank_pct: % luas kecamatan di luar buffer radius km dari seluruh sekolah (buffer analysis)
  * - jarak_terdekat_km: jarak titik representatif kecamatan ke sekolah terdekat
  */
-async function collectMetrics(tahun, radiusKm = cfg.COVERAGE_RADIUS_KM, client = db) {
-  const sql = `
-    WITH kec AS (
-      SELECT w.id_wilayah, w.kode_bps, w.nama_wilayah, ST_MakeValid(w.geom) AS geom,
+async function collectMetrics(tahun, radiusKm = cfg.COVERAGE_RADIUS_KM, client = db, districts = null) {
+  // Pratinjau Bogor dapat mengganti geometri tanpa mengaktifkan/menimpa wilayah demo.
+  // demographic_id hanya menghubungkan data usia SMP; seluruh metrik spasial dihitung ulang.
+  const districtQuery = districts ? `
+      SELECT d.id AS id_wilayah, d.demographic_id, NULL::text AS kode_bps, d.nama AS nama_wilayah,
+             ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(d.geometry), 4326)) AS geom,
+             ST_Area(ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON(d.geometry), 4326))::geography) / 1000000.0 AS luas_km2
+      FROM jsonb_to_recordset($3::jsonb) AS d(id text, demographic_id integer, nama text, geometry jsonb)
+    ` : `
+      SELECT w.id_wilayah, w.id_wilayah AS demographic_id, w.kode_bps, w.nama_wilayah, ST_MakeValid(w.geom) AS geom,
              COALESCE(w.luas_km2, ST_Area(w.geom::geography) / 1000000.0) AS luas_km2
       FROM wilayah w
       WHERE w.level_wilayah = 'Kecamatan' AND w.geom IS NOT NULL AND ${active('w')}
+    `;
+  const sql = `
+    WITH kec AS (
+      ${districtQuery}
     ),
     cov AS (
       SELECT ST_Union(ST_Buffer(s.geom::geography, $1::float8)::geometry) AS geom
@@ -71,7 +81,7 @@ async function collectMetrics(tahun, radiusKm = cfg.COVERAGE_RADIUS_KM, client =
     LEFT JOIN LATERAL (
       SELECT x.jumlah_penduduk, x.penduduk_usia_smp
       FROM kependudukan x
-      WHERE x.id_wilayah = k.id_wilayah AND x.tahun <= $2::int AND ${active('x')}
+      WHERE x.id_wilayah = k.demographic_id AND x.tahun <= $2::int AND ${active('x')}
       ORDER BY x.tahun DESC LIMIT 1
     ) kp ON TRUE
     LEFT JOIN LATERAL (
@@ -104,7 +114,9 @@ async function collectMetrics(tahun, radiusKm = cfg.COVERAGE_RADIUS_KM, client =
     ) nn ON TRUE
     ORDER BY k.nama_wilayah ASC
   `;
-  const r = await client.query(sql, [radiusKm * 1000, tahun]);
+  const params = [radiusKm * 1000, tahun];
+  if (districts) params.push(JSON.stringify(districts));
+  const r = await client.query(sql, params);
   return r.rows;
 }
 

@@ -1,0 +1,35 @@
+{
+  "year": 2024,
+  "sources": {
+    "kabupaten": {
+      "url": "https://bogorkab.bps.go.id/id/statistics-table/2/MjkjMg%3D%3D/jumlah-penduduk.html%7C",
+      "method": "BPS Kabupaten Bogor; estimasi penduduk hasil SP2020. Total dihitung dari laki-laki + perempuan.",
+      "expectedTotal": 5682303
+    },
+    "kota": {
+      "url": "https://bogorkota.bps.go.id/id/statistics-table/2/MTAwOCMy/Batagor%20-%20Bahas%20Data%20Kota%20Bogor",
+      "method": "Disdukcapil melalui BPS Kota Bogor; DKB Semester I, Juni 2024. Menggunakan kolom Penduduk (jiwa).",
+      "expectedTotal": 1137018
+    }
+  },
+  "kabupaten": {
+    "Nanggung": [54828, 49332], "Leuwiliang": [66298, 62362], "Leuwisadeng": [41505, 38120],
+    "Pamijahan": [86154, 80072], "Cibungbulang": [79739, 73929], "Ciampea": [90649, 85739],
+    "Tenjolaya": [34799, 32224], "Dramaga": [58976, 54760], "Ciomas": [90636, 87898],
+    "Tamansari": [59475, 56150], "Cijeruk": [50362, 46362], "Cigombong": [52012, 48950],
+    "Caringin": [71271, 66111], "Ciawi": [61246, 57889], "Cisarua": [68657, 63772],
+    "Megamendung": [57870, 52899], "Sukaraja": [111701, 107831], "Babakan Madang": [61522, 57283],
+    "Sukamakmur": [46848, 42890], "Cariu": [26911, 26679], "Tanjungsari": [30396, 29268],
+    "Jonggol": [76622, 75015], "Cileungsi": [153613, 151134], "Klapanunggal": [72545, 69621],
+    "Gunungputri": [149204, 147220], "Citeureup": [112431, 107663], "Cibinong": [189187, 187510],
+    "Bojonggede": [156280, 152155], "Tajurhalang": [68329, 66313], "Kemang": [55653, 53873],
+    "Rancabungur": [33302, 31756], "Parung": [64174, 62538], "Ciseeng": [59424, 55717],
+    "Gunungsindur": [69552, 67160], "Rumpin": [80076, 72179], "Cigudeg": [73440, 66769],
+    "Sukajaya": [37422, 34042], "Jasinga": [57885, 53463], "Tenjo": [39543, 36295],
+    "Parungpanjang": [62121, 58702]
+  },
+  "kota": {
+    "Bogor Selatan": 221578, "Bogor Timur": 109587, "Bogor Utara": 206134,
+    "Bogor Tengah": 109281, "Bogor Barat": 256859, "Tanah Sareal": 233579
+  }
+}

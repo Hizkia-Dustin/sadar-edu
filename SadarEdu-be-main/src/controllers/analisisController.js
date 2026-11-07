@@ -2,6 +2,7 @@ const db = require('../config/db');
 const analysis = require('../services/analysisService');
 const candidates = require('../services/candidateService');
 const dataset = require('../services/datasetService');
+const bogorMap = require('../services/bogorMapService');
 
 const wrap = (fn) => async (req, res, next) => {
   try {
@@ -18,7 +19,21 @@ const prioritas = wrap(async (req, res) => {
 });
 
 const blankSpots = wrap(async (req, res) => {
-  const data = await analysis.getBlankSpotsGeoJSON({ radiusKm: req.query.radius_km });
+  // Cakupan publik memakai batas geografis asli; dashboard tetap memakai dataset analisis aktif.
+  const data = req.query.scope === 'bogor'
+    ? await bogorMap.getBlankSpots({ radiusKm: req.query.radius_km })
+    : await analysis.getBlankSpotsGeoJSON({ radiusKm: req.query.radius_km });
+  res.json({ success: true, count: data.features.length, data });
+});
+
+const penduduk = wrap(async (_req, res) => {
+  res.set('Cache-Control', 'public, max-age=3600');
+  res.json({ success: true, count: bogorMap.population.features.length, data: bogorMap.population });
+});
+
+// Simulasi read-only: rumus MCDA lama + batas asli, tanpa menyimpan skor dashboard.
+const kebutuhanBogor = wrap(async (_req, res) => {
+  const data = await bogorMap.getNeeds();
   res.json({ success: true, count: data.features.length, data });
 });
 
@@ -56,4 +71,4 @@ const status = wrap(async (req, res) => {
   res.json({ success: true, data: { ...data, layer_tersedia: layer } });
 });
 
-module.exports = { prioritas, blankSpots, coverage, ringkasan, recalculate, intervensi, status };
+module.exports = { prioritas, penduduk, kebutuhanBogor, blankSpots, coverage, ringkasan, recalculate, intervensi, status };
