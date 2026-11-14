@@ -1,0 +1,53 @@
+/* Loaded by the layout so direct visits to every Operator route share the same skin. */
+.operator-shell { background: #f6f7f5; padding: 12px; color: #263c31; }
+.operator-shell > div:first-child { border: 0; border-radius: 28px; box-shadow: none; background: #f6f7f5; }
+.operator-shell aside { background: #f6f7f5; border: 0; }
+.operator-shell nav a { min-height: 46px; background: transparent; border-radius: 10px; transition: background .18s, transform .18s; }
+.operator-shell nav a:hover { background: #e8ede7; }
+.operator-shell nav a[aria-current='page'] { background: #25382e; color: white; }
+.operator-shell nav a::before { display: none; }
+.operator-shell nav a::after { display: none; }
+.operator-shell header { background: #f6f7f5; border: 0; height: 80px; }
+.operator-shell header > p { display: none; }
+.operator-shell header > div:has(> input) { margin-right: auto; width: min(100%, 460px); }
+.operator-shell header input { width: 100%; min-height: 48px; background: #f8f9f6; border: 0; border-radius: 10px; }
+.operator-shell header button { border-radius: 50%; background: #f8f9f6; border: 0; }
+.operator-shell main { background: #f6f7f5; }
+.operator-shell main > div { padding: clamp(20px, 2.3vw, 40px); gap: 26px; }
+.operator-shell main h1 { font-size: clamp(26px, 2vw, 32px); line-height: 1.2; font-weight: 600; letter-spacing: -.035em; color: #263c31; margin-bottom: 10px; }
+.operator-shell main h2 { font-size: 20px; font-weight: 500; letter-spacing: -.025em; color: #263c31; }
+.operator-shell main section { border: 0; border-radius: 18px; box-shadow: none; padding: 24px; }
+.operator-shell main button { border-radius: 10px; min-height: 44px; transition: background .18s, transform .18s; }
+.operator-shell main button[class*='bg-[#1b4965]'] { background: #253c30; }
+.operator-shell main button:hover:not(:disabled) { filter: brightness(.94); }
+.operator-shell main input:not([type='checkbox']):not([type='radio']), .operator-shell main select { border-radius: 10px; min-height: 46px; border-color: #d5ddd0; }
+.operator-shell main th { background: #e9eee4; color: #52624b; }
+.operator-shell main td { border-color: #e1e7dc; }
+.operator-shell main tbody tr { transition: background .18s; }
+.operator-shell main tbody tr:hover { background: #eff3e9; }
+.operator-shell :focus-visible { outline: 3px solid #1f6f5f; outline-offset: 4px; }
+
+/* The large source-readiness panel balances the wide version history and import action. */
+.operator-dataset .dataset-bento { grid-template-columns: minmax(0, 1.65fr) minmax(300px, 1fr); gap: 24px; align-items: stretch; }
+.operator-dataset .dataset-versions { background: #f9faf7; }
+.operator-dataset .dataset-requirements { background: #e9eee5; padding: 26px; }
+.operator-dataset .dataset-requirements > p { margin-top: 8px; color: #435741; }
+.operator-dataset .dataset-requirements ul { gap: 0; margin-top: 30px; }
+.operator-dataset .dataset-requirements li { border: 0; border-top: 1px solid #aabc9e; border-radius: 0; background: transparent; padding: 16px 0; }
+.operator-dataset .dataset-requirements li svg { background: #edf3e3; border-radius: 50%; padding: 8px; width: 34px; height: 34px; margin-top: 0; }
+.operator-dataset .dataset-requirements li span span:last-child { color: #435741; font-size: 12px; margin-top: 6px; line-height: 1.6; }
+.operator-dataset .dataset-start { background: #e3e9db; border: 0; border-radius: 14px; padding: 24px; margin-top: 32px; min-height: 120px; }
+.operator-dataset .dataset-start > svg { color: #426246; width: 48px; height: 48px; }
+.operator-dataset .dataset-start h3 { font-size: 22px; font-weight: 500; line-height: 1.3; margin-bottom: 8px; }
+.operator-dataset .dataset-versions > [role='region'] { margin-top: 30px; }
+@media(max-width:1100px) { .operator-dataset .dataset-bento { grid-template-columns: 1fr; } }
+@media(max-width:640px) {
+  .operator-shell { padding: 0; }
+  .operator-shell main > div { padding: 18px; }
+  .operator-shell main section { padding: 20px; }
+  .operator-shell nav a::after { display: none; }
+  .operator-shell header { padding-inline: 12px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .operator-shell nav a, .operator-shell main button, .operator-shell main tbody tr { transition: none; transform: none !important; }
+}
