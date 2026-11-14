@@ -5,9 +5,20 @@ const IntroPage = lazy(() => import("./pages/IntroPage"));
 const LandingPage = lazy(() => import("./pages/HomePage"));
 const Login = lazy(() => import("./pages/auth/Login"));
 const StakeholderDashboard = lazy(() => import("./pages/stakeholder/StakeholderDashboard"));
-const OperatorDashboard = lazy(() => import("./pages/operator/OperatorDashboard"));
 const EksplorasiPeta = lazy(() => import("./pages/public/EksplorasiPeta"));
 import RequireRole from "./components/auth/RequireRole";
+
+// Halaman & Komponen Alur Operator
+const OperatorLayout = lazy(() => import("./components/operator/OperatorLayout"));
+const OperatorDashboard = lazy(() => import("./pages/operator/OperatorDashboard"));
+const OperatorDataset = lazy(() => import("./pages/operator/OperatorDataset"));
+const OperatorImport = lazy(() => import("./pages/operator/OperatorImport"));
+const OperatorValidation = lazy(() => import("./pages/operator/OperatorValidation"));
+const OperatorRepair = lazy(() => import("./pages/operator/OperatorRepair"));
+const OperatorReview = lazy(() => import("./pages/operator/OperatorReview"));
+const OperatorStatus = lazy(() => import("./pages/operator/OperatorStatus"));
+const OperatorIndicator = lazy(() => import("./pages/operator/OperatorIndicator"));
+const OperatorLogin = lazy(() => import("./pages/operator/OperatorLogin"));
 
 const AwwwardsLoader = lazy(() => import("./components/ui/AwwwardsLoader"));
 const PageTransition = lazy(() => import("./components/ui/PageTransition"));
@@ -60,20 +71,18 @@ function AppRoutes() {
             />
           </Route>
 
-          {/* FLOW OPERATOR */}
-          <Route path="/operator">
-            <Route
-              index
-              element={<Navigate to="/operator/dataset" replace />}
-            />
-            <Route
-              path="dataset"
-              element={
-                <RequireRole roles={["Operator"]}>
-                  <OperatorDashboard />
-                </RequireRole>
-              }
-            />
+          {/* FLOW OPERATOR (RUTE RUANG KERJA & ALUR AUDIT DATASET) */}
+          <Route path="/operator/login" element={<OperatorLogin />} />
+          <Route path="/operator" element={<OperatorLayout />}>
+            <Route index element={<Navigate to="/operator/dashboard" replace />} />
+            <Route path="dashboard" element={<OperatorDashboard />} />
+            <Route path="dataset" element={<OperatorDataset />} />
+            <Route path="dataset/impor" element={<OperatorImport />} />
+            <Route path="validasi" element={<OperatorValidation />} />
+            <Route path="validasi/perbaikan" element={<OperatorRepair />} />
+            <Route path="pengajuan" element={<OperatorReview />} />
+            <Route path="status" element={<OperatorStatus />} />
+            <Route path="indikator" element={<OperatorIndicator />} />
           </Route>
 
           {/* FALLBACK 404 */}

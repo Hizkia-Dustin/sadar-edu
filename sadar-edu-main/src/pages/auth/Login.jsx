@@ -1,34 +1,33 @@
-import { useState } from "react";
-import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { useAuthStore, roleHome } from "../../store/useAuthStore";
+﻿import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
+import { useAuthStore } from '../../store/useAuthStore';
+
+const ACCESS_OPTIONS = [
+  {
+    role: 'stakeholder',
+    title: 'Stakeholder / Dinas',
+    description: 'Lihat analisis dan hasil perencanaan.',
+  },
+  {
+    role: 'operator',
+    title: 'Operator Data',
+    description: 'Kelola dan perbarui dataset spasial.',
+  },
+];
 
 export default function Login() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { login, isAuthenticated, user } = useAuthStore();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const login = useAuthStore((state) => state.login);
 
-  if (isAuthenticated && user) return <Navigate to={roleHome(user.role)} replace />;
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    try {
-      const u = await login(email.trim(), password);
-      const from = location.state && location.state.from;
-      const home = roleHome(u.role);
-      // Kembali ke halaman semula hanya bila role boleh mengaksesnya
-      const allowed = from && (from.startsWith("/stakeholder") || (from.startsWith("/operator") && home.startsWith("/operator")));
-      navigate(allowed ? from : home, { replace: true });
-    } catch (err) {
-      setError(err.message || "Login gagal.");
-    } finally {
-      setLoading(false);
+  const handleSelect = (role) => {
+    if (role === 'operator') {
+      navigate('/operator/login');
+      return;
     }
+
+    // TODO: arahkan ke halaman login stakeholder setelah halamannya dibuat.
+    login(role);
+    navigate('/stakeholder/dashboard');
   };
 
   return (
@@ -36,51 +35,40 @@ export default function Login() {
       <div className="bg-white p-8 rounded-2xl shadow-xl border border-slate-200 w-full max-w-md">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-[#1F6F5F]">SADAR EDU</h1>
-          <p className="text-xs text-slate-500 mt-1">Sistem Analisis Distribusi & Aksesibilitas Ruang Edukasi</p>
-          <p className="text-xs text-slate-400 mt-3">Masuk untuk Stakeholder / Dinas dan Operator Data</p>
+          <p className="text-xs text-slate-500 mt-1">
+            Sistem Analisis Distribusi &amp; Aksebilitas Ruang Edukasi
+          </p>
         </div>
 
-        <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          <div>
-            <label htmlFor="email" className="block text-xs font-medium text-slate-700 mb-1">Email</label>
-            <input
-              id="email"
-              type="email"
-              required
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1F6F5F]"
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="block text-xs font-medium text-slate-700 mb-1">Kata sandi</label>
-            <input
-              id="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1F6F5F]"
-            />
-          </div>
+        <h2 className="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-3">
+          Pilih akses masuk
+        </h2>
 
-          {error && (
-            <p role="alert" className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full mt-1 py-2.5 bg-[#1F6F5F] hover:bg-emerald-800 disabled:opacity-60 text-white font-medium rounded-lg text-sm shadow transition-colors"
-          >
-            {loading ? "Memproses..." : "Masuk"}
-          </button>
-        </form>
+        <div className="flex flex-col gap-3">
+          {ACCESS_OPTIONS.map((option) => (
+            <button
+              key={option.role}
+              type="button"
+              onClick={() => handleSelect(option.role)}
+              className="group flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-left transition-colors hover:border-[#1F6F5F] hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1F6F5F]"
+            >
+              <span>
+                <span className="block text-sm font-semibold text-slate-800">{option.title}</span>
+                <span className="block text-xs text-slate-600">{option.description}</span>
+              </span>
+              <ArrowRight
+                size={18}
+                aria-hidden="true"
+                className="shrink-0 text-slate-500 transition-colors group-hover:text-[#1F6F5F]"
+              />
+            </button>
+          ))}
+        </div>
 
         <div className="mt-6 text-center">
-          <Link to="/peta" className="text-xs text-[#1F6F5F] hover:underline">← Kembali ke Eksplorasi Warga</Link>
+          <a href="/peta" className="text-xs text-[#1F6F5F] hover:underline">
+            &larr; Kembali ke Eksplorasi Warga
+          </a>
         </div>
       </div>
     </div>
