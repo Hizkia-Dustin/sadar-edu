@@ -1,275 +1,258 @@
-import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/useAuthStore';
+import { Database, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { useOperatorStore } from '../../store/useOperatorStore';
+import { isProvenanceComplete } from '../../lib/operatorImport';
+import {
+  BTN_PRIMARY,
+  CARD,
+  EMPTY,
+  FOCUS,
+  MetricCard,
+  PageHeader,
+  StatusPill,
+  TD,
+  TH,
+  formatTimestamp,
+} from '../../components/operator/ui';
+
+const ALERTS = [
+  {
+    icon: TriangleAlert,
+    tone: 'bg-[#85520c]',
+    title: 'Validasi belum dijalankan',
+    text: 'Unggah dataset untuk melihat temuan.',
+  },
+  {
+    icon: Database,
+    tone: 'bg-[#2c6e8e]',
+    title: 'Provenance belum lengkap',
+    text: 'Sumber dan periode wajib sebelum pengajuan.',
+  },
+  {
+    icon: ShieldCheck,
+    tone: 'bg-[#1b4965]',
+    title: 'Tidak ada pengajuan aktif',
+    text: 'Status muncul setelah dikirim ke Dinas.',
+  },
+];
+
+function SchematicMap() {
+  return (
+    <svg
+      viewBox="0 0 706 196"
+      role="img"
+      aria-label="Ilustrasi peta skematis tanpa data lokasi sekolah"
+      className="h-auto w-full"
+    >
+      <rect width="706" height="196" fill="#edf3f6" />
+      <path d="M0 30 L150 0 H706 V96 L520 126 L270 96 L0 122 Z" fill="#dfe9dc" />
+      <path d="M0 150 L260 118 L520 140 L706 110 V196 H0 Z" fill="#dfe9dc" />
+      <path
+        d="M372 0 C346 58 392 112 360 196"
+        fill="none"
+        stroke="#bfe3ec"
+        strokeWidth="24"
+        strokeLinecap="round"
+      />
+      <g fill="none" stroke="#ffffff" strokeWidth="5" strokeLinecap="round">
+        <path d="M0 74 L706 112" />
+        <path d="M130 0 L186 196" />
+        <path d="M486 0 L530 196" />
+        <path d="M260 22 L430 118 L706 88" />
+      </g>
+      <path
+        d="M0 172 C210 124 400 134 706 70"
+        fill="none"
+        stroke="#e6a03c"
+        strokeWidth="1.5"
+      />
+      <g fill="#1b4965" stroke="#ffffff" strokeWidth="2">
+        <circle cx="160" cy="95" r="6" />
+        <circle cx="318" cy="72" r="6" />
+        <circle cx="436" cy="113" r="6" />
+        <circle cx="548" cy="64" r="6" />
+      </g>
+    </svg>
+  );
+}
 
 export default function OperatorDashboard() {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const versions = useOperatorStore((state) => state.versions);
+  const activity = useOperatorStore((state) => state.activity);
 
-  // State Simulasi Dataset GIS
-  const [datasets, setDatasets] = useState([
+  const validation = useOperatorStore((state) => state.validation);
+  const provenance = useOperatorStore((state) => state.provenance);
+  const submission = useOperatorStore((state) => state.submission);
+  const countByStatus = (status) => versions.filter((version) => version.status === status).length;
+
+  // Angka baru muncul setelah ada validasi, sebelum itu tampil penanda kosong.
+  const metrics = [
+    { label: 'Dataset aktif', value: EMPTY, note: 'Versi belum tersedia', accent: 'bg-[#1b4965]' },
     {
-      id: 'DS-001',
-      name: 'Data Sekolah DKI Jakarta 2026',
-      category: 'Fasilitas Pendidikan',
-      format: 'GeoJSON',
-      featuresCount: 1420,
-      updatedAt: '2026-09-10',
-      status: 'Aktif',
+      label: 'Siap ditinjau',
+      value: validation ? countByStatus('Siap ditinjau') : EMPTY,
+      note: validation ? 'Lolos validasi' : 'Menunggu validasi',
+      accent: 'bg-[#3fa796]',
     },
     {
-      id: 'DS-002',
-      name: 'Batas Wilayah Kecamatan',
-      category: 'Batas Administrasi',
-      format: 'GeoJSON',
-      featuresCount: 44,
-      updatedAt: '2026-08-25',
-      status: 'Aktif',
+      label: 'Perlu perbaikan',
+      value: validation ? countByStatus('Perlu perbaikan') : EMPTY,
+      note: validation ? 'Dari validasi terakhir' : 'Belum dihitung',
+      accent: 'bg-[#85520c]',
     },
-    {
-      id: 'DS-003',
-      name: 'Peta Rawan Banjir Disdik',
-      category: 'Infrastruktur & Kebencanaan',
-      format: 'KML',
-      featuresCount: 18,
-      updatedAt: '2026-07-14',
-      status: 'Nonaktif',
-    },
-  ]);
+  ];
 
-  // State Modal / Form Upload
-  const [isUploading, setIsUploading] = useState(false);
-  const [newDataset, setNewDataset] = useState({
-    name: '',
-    category: 'Fasilitas Pendidikan',
-    fileName: '',
-  });
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
-  const toggleStatus = (id) => {
-    setDatasets(prev =>
-      prev.map(ds =>
-        ds.id === id ? { ...ds, status: ds.status === 'Aktif' ? 'Nonaktif' : 'Aktif' } : ds
-      )
-    );
-  };
-
-  const handleDelete = (id) => {
-    if (confirm('Apakah Anda yakin ingin menghapus dataset ini?')) {
-      setDatasets(prev => prev.filter(ds => ds.id !== id));
-    }
-  };
-
-  const handleUploadSubmit = (e) => {
-    e.preventDefault();
-    if (!newDataset.name || !newDataset.fileName) return;
-
-    const addedItem = {
-      id: `DS-00${datasets.length + 1}`,
-      name: newDataset.name,
-      category: newDataset.category,
-      format: newDataset.fileName.split('.').pop().toUpperCase() || 'GeoJSON',
-      featuresCount: Math.floor(Math.random() * 500) + 50,
-      updatedAt: new Date().toISOString().split('T')[0],
-      status: 'Aktif',
-    };
-
-    setDatasets([addedItem, ...datasets]);
-    setNewDataset({ name: '', category: 'Fasilitas Pendidikan', fileName: '' });
-    setIsUploading(false);
-  };
+  const alerts = [
+    validation
+      ? {
+          icon: TriangleAlert,
+          tone: 'bg-[#85520c]',
+          title: 'Validasi terakhir',
+          text:
+            validation.needsFixRows > 0
+              ? `${validation.needsFixRows} dari ${validation.totalRows} baris perlu perbaikan.`
+              : `Semua ${validation.totalRows} baris lolos aturan.`,
+        }
+      : ALERTS[0],
+    isProvenanceComplete(provenance)
+      ? {
+          icon: Database,
+          tone: 'bg-[#2c6e8e]',
+          title: 'Provenance lengkap',
+          text: 'Sumber, periode, cakupan, dan lisensi sudah diisi.',
+        }
+      : ALERTS[1],
+    submission
+      ? {
+          icon: ShieldCheck,
+          tone: 'bg-[#1b4965]',
+          title: 'Pengajuan aktif',
+          text: `${submission.fileName} menunggu peninjauan Dinas.`,
+        }
+      : ALERTS[2],
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans flex flex-col">
-      
-      {/* TOPBAR NAVIGATION */}
-      <header className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="bg-amber-600 text-white p-2 rounded-lg font-bold text-xs">
-            GIS
-          </div>
-          <div>
-            <h1 className="font-bold text-slate-800 text-lg leading-tight">Dashboard Operator Data</h1>
-            <p className="text-xs text-slate-500">SADAR EDU — Panel Pengelolaan Dataset Spasial</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="text-right hidden sm:block">
-            <span className="block text-xs font-semibold text-slate-700">{user?.name || 'Operator GIS'}</span>
-            <span className="block text-[10px] text-slate-400">{user?.email || 'admin.gis@jakarta.go.id'}</span>
-          </div>
+    <div className="flex flex-col gap-5 p-4 sm:p-7">
+      <PageHeader
+        eyebrow="Ringkasan"
+        title="Dashboard Operator Data"
+        description="Pantau kesiapan dataset, pemeriksaan kualitas, dan pengajuan terbaru."
+        action={
           <button
-            onClick={handleLogout}
-            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-lg transition-colors"
+            type="button"
+            onClick={() => navigate('/operator/dataset/impor')}
+            className={`${BTN_PRIMARY} w-[172px]`}
           >
-            Keluar
+            Impor dataset
           </button>
+        }
+      />
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_344px]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <div className="grid gap-3.5 sm:grid-cols-3">
+            {metrics.map((metric) => (
+              <MetricCard key={metric.label} {...metric} />
+            ))}
+          </div>
+
+          <section aria-labelledby="judul-cakupan" className={`${CARD} p-[17px]`}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 id="judul-cakupan" className="text-base font-semibold leading-6">
+                  Cakupan lokasi sekolah
+                </h2>
+                <p className="text-[11px] font-medium leading-4 text-[#445665]">
+                  Peta skematis &bull; bukan lokasi nyata
+                </p>
+              </div>
+              <StatusPill>Data belum terhubung</StatusPill>
+            </div>
+            <div className="mt-3 overflow-hidden rounded-lg">
+              <SchematicMap />
+            </div>
+          </section>
         </div>
-      </header>
 
-      {/* CONTENT AREA */}
-      <main className="flex-1 p-6 max-w-7xl mx-auto w-full flex flex-col gap-6">
-        
-        {/* STATS SUMMARY CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Dataset</span>
-            <div className="text-2xl font-bold text-slate-800 mt-1">{datasets.length} Berkas</div>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Layer Aktif di Peta</span>
-            <div className="text-2xl font-bold text-emerald-600 mt-1">
-              {datasets.filter(d => d.status === 'Aktif').length} Layer
-            </div>
-          </div>
-          <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-            <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Geometri Data</span>
-            <div className="text-2xl font-bold text-[#1F6F5F] mt-1">
-              {datasets.reduce((acc, curr) => acc + curr.featuresCount, 0).toLocaleString()} Objek
-            </div>
-          </div>
-        </div>
+        <section aria-labelledby="judul-perhatian" className={`${CARD} p-[17px]`}>
+          <h2 id="judul-perhatian" className="text-base font-semibold leading-6">Perhatian data</h2>
+          <p className="text-xs leading-[18px] text-[#445665]">
+            Aturan yang memerlukan tindakan operator.
+          </p>
+          <ul className="mt-5 flex flex-col gap-2.5">
+            {alerts.map(({ icon: Icon, tone, title, text }) => (
+              <li
+                key={title}
+                className="flex items-start gap-3 rounded-lg border border-[#d7e1e8] bg-[#edf3f6] p-3"
+              >
+                <span
+                  aria-hidden="true"
+                  className={`flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full text-white ${tone}`}
+                >
+                  <Icon size={18} />
+                </span>
+                <span>
+                  <span className="block text-sm font-semibold leading-5">{title}</span>
+                  <span className="block text-[11px] font-medium leading-4 text-[#445665]">{text}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      </div>
 
-        {/* DATASET MANAGEMENT TABLE HEADER */}
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-          
-          <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h2 className="font-bold text-slate-800 text-base">Manajemen Layer Dataset</h2>
-              <p className="text-xs text-slate-500">Unggah, aktifkan, atau perbarui dataset spasial wilayah.</p>
-            </div>
-            <button
-              onClick={() => setIsUploading(true)}
-              className="bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs px-4 py-2 rounded-lg shadow transition-colors flex items-center gap-2"
-            >
-              <span>+ Unggah Dataset Baru</span>
-            </button>
-          </div>
-
-          {/* TABEL DATASET */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-600">
-              <thead className="bg-slate-50 text-slate-700 font-semibold uppercase tracking-wider border-b border-slate-200">
+      <section aria-labelledby="judul-aktivitas" className={`${CARD} p-[17px]`}>
+        <h2 id="judul-aktivitas" className="text-base font-semibold leading-6">Aktivitas terbaru</h2>
+        <p className="text-xs leading-[18px] text-[#445665]">
+          Perubahan dataset dan keputusan akan muncul di sini.
+        </p>
+        <div
+          role="region"
+          aria-label="Tabel aktivitas terbaru"
+          tabIndex={0}
+          className={`mt-4 overflow-x-auto ${FOCUS}`}
+        >
+          <table className="w-full min-w-[640px] text-left">
+            <thead>
+              <tr>
+                <th scope="col" className={`${TH} w-[16%]`}>Tahap</th>
+                <th scope="col" className={`${TH} w-[46%]`}>Aktivitas</th>
+                <th scope="col" className={`${TH} w-[18%]`}>Waktu</th>
+                <th scope="col" className={`${TH} w-[20%]`}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {activity.length === 0 ? (
                 <tr>
-                  <th className="py-3.5 px-4">Nama Dataset</th>
-                  <th className="py-3.5 px-4">Kategori</th>
-                  <th className="py-3.5 px-4">Format</th>
-                  <th className="py-3.5 px-4">Jumlah Fitur</th>
-                  <th className="py-3.5 px-4">Terakhir Diperbarui</th>
-                  <th className="py-3.5 px-4">Status Layer</th>
-                  <th className="py-3.5 px-4 text-center">Aksi</th>
+                  <td className={TD}>Dataset</td>
+                  <td className={TD}>Belum ada aktivitas</td>
+                  <td className={TD}>{EMPTY}</td>
+                  <td className={TD}>Menunggu</td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {datasets.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-semibold text-slate-800">{item.name}</td>
-                    <td className="py-3.5 px-4">{item.category}</td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono text-[11px]">
-                        {item.format}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4">{item.featuresCount.toLocaleString()} objek</td>
-                    <td className="py-3.5 px-4">{item.updatedAt}</td>
-                    <td className="py-3.5 px-4">
-                      <button
-                        onClick={() => toggleStatus(item.id)}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all ${
-                          item.status === 'Aktif'
-                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                            : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                        }`}
-                      >
-                        {item.status}
-                      </button>
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <button
-                        onClick={() => handleDelete(item.id)}
-                        className="text-red-500 hover:text-red-700 font-medium text-xs transition-colors"
-                      >
-                        Hapus
-                      </button>
-                    </td>
+              ) : (
+                activity.map((item) => (
+                  <tr key={item.id}>
+                    <td className={TD}>{item.stage}</td>
+                    <td className={TD}>{item.text}</td>
+                    <td className={TD}>{formatTimestamp(item.at)}</td>
+                    <td className={TD}>{item.status}</td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                ))
+              )}
+              {!activity.some((item) => item.stage === 'Pengajuan') && (
+                <tr>
+                  <td className={TD}>Pengajuan</td>
+                  <td className={TD}>Belum ada pengajuan</td>
+                  <td className={TD}>{EMPTY}</td>
+                  <td className={TD}>Belum dimulai</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-
-      </main>
-
-      {/* MODAL SIMULASI UPLOAD */}
-      {isUploading && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <h3 className="text-base font-bold text-slate-800 mb-1">Unggah Dataset Spasial</h3>
-            <p className="text-xs text-slate-500 mb-4">Format yang didukung: GeoJSON, KML, CSV, Shapefile (.zip)</p>
-
-            <form onSubmit={handleUploadSubmit} className="flex flex-col gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Nama Dataset</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="cth: Lokasi Posko Bencana Disdik"
-                  value={newDataset.name}
-                  onChange={(e) => setNewDataset({ ...newDataset, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Kategori Dataset</label>
-                <select
-                  value={newDataset.category}
-                  onChange={(e) => setNewDataset({ ...newDataset, category: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:ring-2 focus:ring-amber-500 outline-none"
-                >
-                  <option value="Fasilitas Pendidikan">Fasilitas Pendidikan</option>
-                  <option value="Batas Administrasi">Batas Administrasi</option>
-                  <option value="Infrastruktur & Kebencanaan">Infrastruktur & Kebencanaan</option>
-                  <option value="Demografi">Demografi</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Pilih Berkas GIS</label>
-                <input
-                  type="file"
-                  required
-                  onChange={(e) => setNewDataset({ ...newDataset, fileName: e.target.files[0]?.name || '' })}
-                  className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-50 file:text-amber-700 hover:file:bg-amber-100 cursor-pointer"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsUploading(false)}
-                  className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-xs font-medium bg-amber-600 hover:bg-amber-700 text-white rounded-lg shadow transition-colors"
-                >
-                  Simpan & Unggah
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
+      </section>
     </div>
   );
 }
