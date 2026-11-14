@@ -6,7 +6,7 @@ const { httpError } = require('../middleware/errorHandler');
 // Kolom sekolah + statistik terbaru (<= tahun bila diberikan)
 const SELECT_SEKOLAH = `
   s.id_sekolah, s.npsn, s.id_wilayah, w.nama_wilayah, s.nama_sekolah, s.status_sekolah,
-  s.alamat, s.jenjang, s.akreditasi, s.kabupaten_kota, s.kecamatan_asal, s.desa_kelurahan,
+  s.alamat, s.jenjang, s.akreditasi, s.kabupaten_kota, s.kecamatan_asal, s.desa_kelurahan, s.foto_url,
   st.tahun AS tahun_statistik,
   st.jumlah_siswa, st.jumlah_guru, st.jumlah_rombel, st.jumlah_ruang_kelas,
   st.ruang_kelas_baik, st.ruang_kelas_rusak_ringan, st.ruang_kelas_rusak_sedang, st.ruang_kelas_rusak_berat`;
@@ -22,6 +22,16 @@ const joinStatistik = (tahunParam) => `
 
 const likeEscape = (q) => `%${String(q).replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 
+/**
+ * GET /api/v1/sekolah/geojson
+ * Mengambil seluruh data sekolah aktif dalam format standar GeoJSON FeatureCollection.
+ * Mendukung filter:
+ * - q: pencarian nama sekolah / NPSN (case-insensitive)
+ * - tahun: statistik tahun tertentu (misal: 2026, 2028)
+ * - jenjang: filter SMP / MTs
+ * - status_sekolah: Negeri / Swasta
+ * PostGIS mengonversi kolom spasial `geom` menjadi string GeoJSON via `ST_AsGeoJSON(s.geom)`.
+ */
 const getAllSekolahGeoJSON = async (req, res, next) => {
   try {
     const { jenjang, status_sekolah, id_wilayah, q, tahun } = req.query;
@@ -152,14 +162,14 @@ const createSekolah = async (req, res, next) => {
 
     const out = await db.withTransaction(async (client) => {
       const ins = await client.query(
-        `INSERT INTO sekolah (npsn, id_wilayah, nama_sekolah, status_sekolah, alamat, jenjang, akreditasi, geom)
+        `INSERT INTO sekolah (npsn, id_wilayah, nama_sekolah, status_sekolah, alamat, jenjang, akreditasi, foto_url, geom)
          VALUES ($1,
                  COALESCE($2::bigint, (SELECT w.id_wilayah FROM wilayah w
                                        WHERE w.level_wilayah = 'Kecamatan' AND ST_Covers(w.geom, ST_SetSRID(ST_MakePoint($8, $9), 4326)) LIMIT 1)),
-                 $3, $4, $5, $6, $7, ST_SetSRID(ST_MakePoint($8, $9), 4326))
-         RETURNING id_sekolah, npsn, id_wilayah, nama_sekolah, status_sekolah, jenjang`,
+                 $3, $4, $5, $6, $7, $10, ST_SetSRID(ST_MakePoint($8, $9), 4326))
+         RETURNING id_sekolah, npsn, id_wilayah, nama_sekolah, status_sekolah, jenjang, foto_url`,
         [String(b.npsn), b.id_wilayah || null, b.nama_sekolah, b.status_sekolah || 'Negeri', b.alamat || '',
-         b.jenjang || 'SMP', b.akreditasi || null, lng, lat]
+         b.jenjang || 'SMP', b.akreditasi || null, lng, lat, b.foto_url || null]
       );
       const sekolah = ins.rows[0];
       let statistik = null;
@@ -172,6 +182,20 @@ const createSekolah = async (req, res, next) => {
   }
 };
 
+/**
+ * PUT /api/v1/sekolah/:id
+ * PEMBARUAN SATUAN SEKOLAH (Single School Edit):
+ * Digunakan oleh Operator saat hanya ada 1 sekolah yang ingin diperbaiki nama, alamat,
+ * status, atau titik koordinatnya, TANPA perlu mengunggah ulang ribuan baris CSV massal.
+ * 
+ * Logika database:
+ * 1. Mengubah nama_sekolah, status, alamat, jenjang, atau akreditasi jika ada perubahan.
+ * 2. Jika koordinat (lat, lng) diubah, PostGIS membentuk ulang geometri titik:
+ *    ST_SetSRID(ST_MakePoint(longitude, latitude), 4326)
+ * 3. Spatial Query Otomatis: Menghubungkan ulang sekolah ke polygon kecamatan yang mencakupnya
+ *    menggunakan fungsi PostGIS: ST_Covers(w.geom, s.geom).
+ * 4. Menyimpan pembaruan statistik (jumlah siswa, guru, dsb) untuk tahun terkait.
+ */
 const updateSekolah = async (req, res, next) => {
   try {
     const b = req.body || {};
@@ -185,11 +209,13 @@ const updateSekolah = async (req, res, next) => {
         `UPDATE sekolah SET
            nama_sekolah = COALESCE($2, nama_sekolah), status_sekolah = COALESCE($3, status_sekolah),
            alamat = COALESCE($4, alamat), jenjang = COALESCE($5, jenjang), akreditasi = COALESCE($6, akreditasi),
+           foto_url = CASE WHEN $9::boolean THEN $10::text ELSE foto_url END,
            geom = CASE WHEN $7::float8 IS NULL THEN geom ELSE ST_SetSRID(ST_MakePoint($7::float8, $8::float8), 4326) END
          WHERE id_sekolah = $1
-         RETURNING id_sekolah, npsn, nama_sekolah, status_sekolah, jenjang`,
+         RETURNING id_sekolah, npsn, nama_sekolah, status_sekolah, jenjang, foto_url`,
         [req.params.id, b.nama_sekolah || null, b.status_sekolah || null, b.alamat ?? null, b.jenjang || null,
-         b.akreditasi || null, hasCoord ? Number(b.longitude) : null, hasCoord ? Number(b.latitude) : null]
+         b.akreditasi || null, hasCoord ? Number(b.longitude) : null, hasCoord ? Number(b.latitude) : null,
+         b.foto_url !== undefined, b.foto_url || null]
       );
       if (upd.rows.length === 0) throw httpError(404, 'Sekolah tidak ditemukan.');
       if (hasCoord) {

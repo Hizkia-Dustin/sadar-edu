@@ -1,8 +1,9 @@
 ﻿import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FileText, Search, TriangleAlert } from 'lucide-react';
+import { FileText, MapPin, Search, TriangleAlert } from 'lucide-react';
 import { useOperatorStore } from '../../store/useOperatorStore';
 import { FIELD_LABELS, validateProposal, validateRows } from '../../lib/operatorImport';
+import OperatorSpatialPicker from '../../components/operator/OperatorSpatialPicker';
 import {
   BTN_OUTLINE,
   BTN_PRIMARY,
@@ -50,6 +51,7 @@ export default function OperatorRepair() {
   const [proposal, setProposal] = useState('');
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState(null);
+  const [showSpatialPicker, setShowSpatialPicker] = useState(false);
 
   const errors = useMemo(
     () => (validation?.errors ?? []).map((item) => ({ ...item, key: `${item.line}:${item.field}` })),
@@ -78,6 +80,7 @@ export default function OperatorRepair() {
     setSelectedKey(item.key);
     setProposal(existing?.proposed ?? '');
     setReason(existing?.reason ?? '');
+    setShowSpatialPicker(false);
     setMessage(null);
   };
 
@@ -308,18 +311,66 @@ export default function OperatorRepair() {
               />
             </div>
             <div>
-              <label htmlFor="usulan-nilai" className="mb-1.5 block text-[11px] font-medium text-[#445665]">
-                Usulan {fieldLabel === 'Nilai' ? 'nilai' : fieldLabel}
-              </label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label htmlFor="usulan-nilai" className="block text-[11px] font-medium text-[#445665]">
+                  Usulan {fieldLabel === 'Nilai' ? 'nilai' : fieldLabel}
+                </label>
+                {(selected?.field === 'koordinat' || selected?.rule === 'Koordinat') && (
+                  <button
+                    type="button"
+                    onClick={() => setShowSpatialPicker(!showSpatialPicker)}
+                    className="flex items-center gap-1 text-[11px] font-bold text-[#1f6f5f] hover:underline"
+                  >
+                    <MapPin size={13} />
+                    {showSpatialPicker ? 'Tutup Peta' : 'Pilih di Peta'}
+                  </button>
+                )}
+              </div>
               <input
                 id="usulan-nilai"
                 type="text"
                 disabled={!selected}
-                placeholder="Belum diisi"
+                placeholder="Belum diisi (contoh: -6.595, 106.816)"
                 value={proposal}
                 onChange={(e) => setProposal(e.target.value)}
                 className={editorField}
               />
+
+              {(selected?.field === 'koordinat' || selected?.rule === 'Koordinat') && showSpatialPicker && (
+                <div className="mt-3">
+                  <OperatorSpatialPicker
+                    initialLat={
+                      proposal && proposal.includes(',')
+                        ? proposal.split(',')[0].trim()
+                        : selected.value && selected.value.includes(',')
+                        ? selected.value.split(',')[0].trim()
+                        : null
+                    }
+                    initialLng={
+                      proposal && proposal.includes(',')
+                        ? proposal.split(',')[1].trim()
+                        : selected.value && selected.value.includes(',')
+                        ? selected.value.split(',')[1].trim()
+                        : null
+                    }
+                    schoolName={
+                      draft && draft.mapping.name !== ''
+                        ? String(draft.rows[selected.line - 2]?.[Number(draft.mapping.name)] ?? '')
+                        : `Sekolah Baris ${selected.line}`
+                    }
+                    onApplyCoordinate={({ lat, lng }) => {
+                      setProposal(`${lat}, ${lng}`);
+                      if (!reason.trim()) setReason('Koreksi koordinat spasial via peta interaktif');
+                      setShowSpatialPicker(false);
+                      setMessage({
+                        type: 'ok',
+                        text: `Koordinat [${lat}, ${lng}] dipilih dari peta. Klik "Simpan perubahan" untuk mencatat usulan.`,
+                      });
+                    }}
+                    onCancel={() => setShowSpatialPicker(false)}
+                  />
+                </div>
+              )}
             </div>
             <div>
               <label htmlFor="alasan-perubahan" className="mb-1.5 block text-[11px] font-medium text-[#445665]">

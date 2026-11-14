@@ -1,5 +1,22 @@
-﻿import { useNavigate } from 'react-router-dom';
-import { ShieldCheck } from 'lucide-react';
+﻿/**
+ * ============================================================================
+ * HALAMAN: Hasil Validasi Integritas Dataset (Operator)
+ * ============================================================================
+ * Fungsi:
+ * 1. Menguji aturan kualitas data wajib:
+ *    - Format NPSN (string 8 digit angka).
+ *    - Validasi koordinat (WGS84, rentang latitude & longitude).
+ *    - Nilai numerik (jumlah siswa bukan angka negatif).
+ *    - Kelengkapan identitas (nama sekolah wajib).
+ * 2. Menghitung metrik data: Lolos aturan, Perlu perbaikan, Tanpa marker.
+ * 3. Menyediakan tombol "Validasi Data Server" untuk memeriksa langsung 617
+ *    sekolah aktif di PostgreSQL tanpa perlu upload ulang berkas.
+ * ============================================================================
+ */
+
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Database, Info, ShieldCheck } from 'lucide-react';
 import { useOperatorStore } from '../../store/useOperatorStore';
 import { isProvenanceComplete, validateRows } from '../../lib/operatorImport';
 import {
@@ -42,6 +59,9 @@ export default function OperatorValidation() {
   const validation = useOperatorStore((state) => state.validation);
   const runValidation = useOperatorStore((state) => state.runValidation);
   const provenance = useOperatorStore((state) => state.provenance);
+  const loadServerSchoolsAsDraft = useOperatorStore((state) => state.loadServerSchoolsAsDraft);
+
+  const [isLoadingServer, setIsLoadingServer] = useState(false);
 
   const hasResult = Boolean(validation);
   const findings = validation?.findings ?? DEFAULT_FINDINGS;
@@ -53,7 +73,18 @@ export default function OperatorValidation() {
   );
 
   const handleRerun = () => {
-    runValidation(draft, validateRows(draft.rows, draft.mapping));
+    if (draft) {
+      runValidation(draft, validateRows(draft.rows, draft.mapping));
+    }
+  };
+
+  const handleValidateServerData = async () => {
+    setIsLoadingServer(true);
+    const serverDraft = await loadServerSchoolsAsDraft();
+    setIsLoadingServer(false);
+    if (serverDraft) {
+      runValidation(serverDraft, validateRows(serverDraft.rows, serverDraft.mapping));
+    }
   };
 
   const metrics = [
@@ -90,14 +121,25 @@ export default function OperatorValidation() {
         title="Hasil validasi dataset"
         description="Tinjau aturan wajib dan pilih jalur perbaikan atau review."
         action={
-          <button
-            type="button"
-            onClick={handleRerun}
-            disabled={!draft}
-            className={`${BTN_OUTLINE} w-[172px] disabled:cursor-not-allowed disabled:opacity-50`}
-          >
-            Jalankan ulang
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleValidateServerData}
+              disabled={isLoadingServer}
+              className={`${BTN_OUTLINE} flex items-center gap-1.5`}
+            >
+              <Database size={15} />
+              {isLoadingServer ? 'Memuat DB...' : 'Validasi Data DB'}
+            </button>
+            <button
+              type="button"
+              onClick={handleRerun}
+              disabled={!draft}
+              className={`${BTN_PRIMARY} disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              Jalankan ulang
+            </button>
+          </div>
         }
       />
 
@@ -105,6 +147,19 @@ export default function OperatorValidation() {
         {metrics.map((metric) => (
           <MetricCard key={metric.label} {...metric} />
         ))}
+      </div>
+
+      {/* Penjelasan Edukatif Status Validasi untuk Operator */}
+      <div className="rounded-lg border border-[#e8d5b5] bg-[#fffaf0] p-4 text-xs text-[#85520c]">
+        <div className="flex items-start gap-3">
+          <Info size={18} className="mt-0.5 shrink-0 text-[#85520c]" />
+          <div>
+            <p className="font-bold text-[#683f08]">💡 Panduan Operator: Apa arti status "Perlu perbaikan"?</p>
+            <p className="mt-1 leading-relaxed text-[#7c4d0e]">
+              Data diberi label <strong>"Perlu perbaikan"</strong> apabila terdapat baris sekolah yang memiliki koordinat nyasar (di luar batas Kabupaten Bogor), format NPSN tidak standar (bukan 8 digit angka), atau kolom nama sekolah kosong. Baris-baris ini dapat dikoreksi melalui menu <strong>"Perbaiki data"</strong> atau tetap disimpan tanpa marker peta jika koordinatnya memang belum diketahui.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_316px]">
@@ -151,22 +206,34 @@ export default function OperatorValidation() {
           {!hasResult && (
             <div className="mt-5 flex flex-wrap items-center gap-3 rounded-lg bg-[#edf3f6] p-4">
               <p className="min-w-[200px] flex-1 text-xs leading-[18px] text-[#445665]">
-                Belum ada hasil. Impor dan petakan dataset terlebih dahulu, lalu jalankan validasi.
+                Belum ada hasil. Impor dan petakan dataset terlebih dahulu, atau jalankan validasi langsung terhadap data sekolah aktif di database PostgreSQL (PostGIS).
               </p>
-              <button
-                type="button"
-                onClick={() => navigate('/operator/dataset/impor')}
-                className={BTN_PRIMARY}
-              >
-                Ke halaman impor
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleValidateServerData}
+                  disabled={isLoadingServer}
+                  className={`${BTN_PRIMARY} flex items-center gap-2`}
+                >
+                  <Database size={16} />
+                  {isLoadingServer ? 'Mengambil data dari DB...' : 'Validasi Data Server (617 Sekolah)'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/operator/dataset/impor')}
+                  className={BTN_OUTLINE}
+                >
+                  Ke halaman impor
+                </button>
+              </div>
             </div>
           )}
         </section>
 
         <section aria-labelledby="judul-gerbang" className={`${CARD} p-[17px]`}>
-          <h2 id="judul-gerbang" className="text-base font-semibold leading-6">Gerbang validasi</h2>
-          <ul className="mt-5 flex flex-col gap-2.5">
+          <h2 id="judul-gerbang" className="text-base font-semibold leading-6">Kriteria Kelulusan Data</h2>
+          <p className="text-xs text-[#445665]">Standar kualitas spasial & atribut sebelum sinkronisasi.</p>
+          <ul className="mt-4 flex flex-col gap-2.5">
             {gates.map((gate) => (
               <li
                 key={gate.name}

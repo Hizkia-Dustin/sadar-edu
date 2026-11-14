@@ -1,7 +1,8 @@
-﻿import { Check, ShieldCheck } from 'lucide-react';
+﻿import { useState } from 'react';
+import { Check, ShieldCheck } from 'lucide-react';
 import { useOperatorStore } from '../../store/useOperatorStore';
 import { summarizePreview } from '../../lib/operatorImport';
-import SchematicMap from '../../components/operator/SchematicMap';
+import OperatorIndicatorMap from '../../components/operator/OperatorIndicatorMap';
 import { BTN_OUTLINE, CARD, EMPTY, PageHeader, TD, TH } from '../../components/operator/ui';
 
 const DEFINITION = [
@@ -21,6 +22,7 @@ const LIST_LIMIT = 5;
 export default function OperatorIndicator() {
   const draft = useOperatorStore((state) => state.draft);
   const summary = draft ? summarizePreview(draft, LIST_LIMIT) : null;
+  const [highlightedNpsn, setHighlightedNpsn] = useState('');
 
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-7">
@@ -78,19 +80,29 @@ export default function OperatorIndicator() {
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_366px]">
         <section aria-labelledby="judul-peta" className={`${CARD} min-w-0 p-[17px]`}>
-          <h2 id="judul-peta" className="text-base font-semibold leading-6">Preview peta</h2>
-          <p className="text-[11px] font-medium leading-4 text-[#445665]">
-            Peta skematis &bull; tanpa data nyata
-          </p>
-          <div className="mt-5 overflow-hidden rounded-lg">
-            <SchematicMap />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 id="judul-peta" className="text-base font-semibold leading-6">Preview peta</h2>
+              <p className="text-[11px] font-medium leading-4 text-[#445665]">
+                Peta spasial interaktif &bull; Sebaran sekolah Kabupaten Bogor
+              </p>
+            </div>
+            <span className="rounded-full bg-[#e8f3f0] px-2.5 py-1 text-[10px] font-bold text-[#126552]">
+              Data Aktif
+            </span>
+          </div>
+          <div className="mt-4">
+            <OperatorIndicatorMap
+              highlightedNpsn={highlightedNpsn}
+              onSelectSchool={(school) => setHighlightedNpsn(school.npsn)}
+            />
           </div>
         </section>
 
         <section aria-labelledby="judul-daftar" className={`${CARD} p-[17px]`}>
           <h2 id="judul-daftar" className="text-base font-semibold leading-6">Tampilan daftar setara</h2>
           <p className="text-xs leading-[18px] text-[#445665]">
-            Lokasi tidak boleh menjadi satu-satunya cara menemukan sekolah.
+            Klik sekolah bertanda marker untuk fokuskan titik pada peta.
           </p>
 
           <table className="mt-5 w-full text-left">
@@ -102,17 +114,29 @@ export default function OperatorIndicator() {
             </thead>
             <tbody>
               {summary ? (
-                summary.rows.map((row, index) => (
-                  <tr key={`${row.npsn}-${index}`}>
-                    <td className={`${TD} break-words`}>{row.name || row.npsn || EMPTY}</td>
-                    <td className={`${TD} ${row.hasMarker ? 'text-[#126552]' : 'text-[#445665]'}`}>
-                      {row.hasMarker ? 'Ada marker' : 'Tanpa marker'}
-                    </td>
-                  </tr>
-                ))
+                summary.rows.map((row, index) => {
+                  const isSelected = highlightedNpsn && row.npsn === highlightedNpsn;
+                  return (
+                    <tr
+                      key={`${row.npsn}-${index}`}
+                      onClick={() => row.hasMarker && setHighlightedNpsn(row.npsn)}
+                      className={`transition-colors ${
+                        row.hasMarker ? 'cursor-pointer hover:bg-[#edf3f6]' : ''
+                      } ${isSelected ? 'bg-[#e8f3f0]' : ''}`}
+                    >
+                      <td className={`${TD} break-words`}>
+                        <span className="font-semibold">{row.name || EMPTY}</span>
+                        {row.npsn && <span className="block text-[10px] text-slate-500">NPSN: {row.npsn}</span>}
+                      </td>
+                      <td className={`${TD} ${row.hasMarker ? 'text-[#126552] font-semibold' : 'text-[#445665]'}`}>
+                        {row.hasMarker ? 'Ada marker' : 'Tanpa marker'}
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
-                  <td className={TD}>Belum ada data</td>
+                  <td className={TD}>Belum ada draf impor</td>
                   <td className={TD}>{EMPTY}</td>
                 </tr>
               )}
@@ -120,14 +144,14 @@ export default function OperatorIndicator() {
           </table>
           {summary && summary.total > summary.rows.length && (
             <p className="mt-2 text-[11px] font-medium leading-4 text-[#445665]">
-              Menampilkan {summary.rows.length} dari {summary.total} sekolah.
+              Menampilkan {summary.rows.length} dari {summary.total} sekolah draf.
             </p>
           )}
 
           <div className="mt-4 flex items-center gap-3 rounded-lg border border-[#d7e1e8] bg-[#e8f3f0] p-4">
             <Check size={18} aria-hidden="true" className="shrink-0 text-[#126552]" />
             <p className="text-xs leading-[18px] text-[#1b4965]">
-              Tanpa koordinat tetap tersedia di daftar.
+              Sekolah tanpa koordinat tetap tersimpan di database dan daftar pencarian.
             </p>
           </div>
         </section>

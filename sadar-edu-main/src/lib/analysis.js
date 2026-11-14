@@ -75,6 +75,7 @@ export function mapSchoolFeature(f) {
       jenjang: p.jenjang,
       alamat: p.alamat,
       akreditasi: p.akreditasi || null,
+      fotoUrl: p.foto_url || null,
       idWilayah: p.id_wilayah,
       kecamatan: p.nama_wilayah || p.kecamatan_asal || null,
       desa: p.desa_kelurahan || null,

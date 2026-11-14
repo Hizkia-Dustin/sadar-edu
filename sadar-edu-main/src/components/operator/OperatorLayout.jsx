@@ -19,6 +19,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { useOperatorStore } from '../../store/useOperatorStore';
 import { Dialog, FOCUS, formatTimestamp } from './ui';
 import logoSadar from '../../assets/figma/logo-sadar.svg';
+import './operator-shell.css';
 
 // Item tanpa `to` belum punya halaman, jadi tampil nonaktif.
 const NAV_ITEMS = [
@@ -199,7 +200,7 @@ export default function OperatorLayout() {
   };
 
   return (
-    <div className="h-screen bg-[#edf3f6] p-3 text-[#173042] [font-family:'Public_Sans',system-ui,sans-serif] sm:p-6">
+    <div className="operator-shell h-screen bg-[#edf3f6] p-3 text-[#173042] [font-family:'Public_Sans',system-ui,sans-serif] sm:p-6">
       <div className="flex h-full min-h-0 overflow-hidden rounded-[20px] border border-[#d7e1e8] bg-white shadow-[0_12px_30px_rgba(10,36,51,0.1)] sm:rounded-[28px]">
         <aside
           className={`flex shrink-0 flex-col overflow-y-auto border-r border-[#d7e1e8] bg-white transition-[width] duration-200 motion-reduce:transition-none ${

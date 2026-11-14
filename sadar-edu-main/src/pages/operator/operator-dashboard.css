@@ -1,0 +1,94 @@
+/* Scoped to the overview route: dataset forms retain their existing layout. */
+.operator-overview {
+  --overview-ink: #233e35;
+  --overview-muted: #58685e;
+  color: var(--overview-ink);
+  background: #f6f7f5;
+  min-height: 100%;
+  gap: 28px;
+  padding: clamp(20px, 2.6vw, 42px);
+}
+.operator-overview > div:first-child h1 {
+  color: var(--overview-ink);
+  font-size: clamp(26px, 2vw, 32px);
+  font-weight: 500;
+  letter-spacing: -.045em;
+  line-height: 1.2;
+  margin-block: 8px 12px;
+}
+.operator-overview > div:first-child p { color: var(--overview-muted); font-size: 13px; }
+.operator-overview > div:first-child button {
+  background: #243e34;
+  border-radius: 10px;
+  min-height: 46px;
+  transition: background .2s, transform .2s;
+}
+.operator-overview > div:first-child button:hover { background: #1f6f5f; transform: none; }
+.operator-bento { gap: 22px; grid-template-columns: minmax(0, 1fr) 300px; align-items: start; }
+.operator-bento-main { gap: 22px; }
+.operator-metrics { gap: 14px; }
+.operator-metrics > div,
+.operator-overview section {
+  border: 0;
+  border-radius: 18px;
+  box-shadow: none;
+  padding: 24px;
+}
+.operator-metrics > div { background: transparent; min-height: 112px; }
+.operator-metrics > div:nth-child(2) { background: transparent; }
+.operator-metrics > div:nth-child(3) { background: transparent; }
+.operator-metrics > div > span { display: none; }
+.operator-metrics > div p { color: var(--overview-muted); font-size: 12px; }
+.operator-metrics > div p:nth-of-type(2) {
+  color: var(--overview-ink);
+  font-size: 34px;
+  line-height: 1.2;
+  font-weight: 500;
+  margin-block: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.operator-overview h2 { color: var(--overview-ink); font-size: 20px; font-weight: 500; letter-spacing: -.025em; }
+.operator-overview section > p { color: var(--overview-muted); font-size: 13px; margin-top: 6px; }
+.operator-coverage { background: #fff; flex: 1; }
+.operator-coverage > div:last-child { border-radius: 18px; margin-top: 22px; }
+.operator-attention { background: #e9eee5; }
+.operator-attention ul { margin-top: 28px; gap: 0; }
+.operator-attention li {
+  padding: 18px 0;
+  border: 0;
+  border-top: 1px solid #b7c8af;
+  background: transparent;
+  border-radius: 0;
+}
+.operator-attention li > span:first-child { background: #f2f5ed; color: #34523f; width: 40px; height: 40px; }
+.operator-attention li > span:last-child > span:first-child { color: #243e34; font-size: 14px; }
+.operator-attention li > span:last-child > span:last-child { color: #4a604b; font-size: 12px; line-height: 1.65; margin-top: 6px; }
+.operator-activity { background: #fff; }
+.operator-activity th { background: #f0f3ed; color: #52634f; padding-block: 15px; }
+.operator-activity td { border-color: #e4e9df; padding-block: 20px; }
+.operator-activity tbody tr { transition: background .18s; }
+.operator-activity tbody tr:hover { background: #f3f6ef; }
+.operator-overview :focus-visible { outline: 3px solid #1f6f5f; outline-offset: 4px; }
+
+/* Shell treatment is enabled only while the dashboard itself is rendered. */
+div:has(> .operator-overview) { background: #f6f7f5; }
+.operator-shell:has(.operator-overview) { background: #f6f7f5; padding: 12px; }
+.operator-shell:has(.operator-overview) > div:first-child { border: 0; box-shadow: none; border-radius: 28px; background: #f6f7f5; }
+.operator-shell:has(.operator-overview) aside { background: #f6f7f5; border: 0; }
+.operator-shell:has(.operator-overview) nav a { background: transparent; border-radius: 10px; min-height: 46px; transition: background .2s, transform .2s; }
+.operator-shell:has(.operator-overview) nav a:hover { background: #e8ede7; }
+.operator-shell:has(.operator-overview) nav a[aria-current='page'] { background: #243e34; color: #fff; }
+.operator-shell:has(.operator-overview) nav a::before { display: none; }
+.operator-shell:has(.operator-overview) header { border: 0; background: #f6f7f5; }
+.operator-shell:has(.operator-overview) header input { border: 0; border-radius: 10px; background: #fff; min-height: 46px; }
+.operator-shell:has(.operator-overview) header button { border-radius: 50%; }
+@media (max-width: 1100px) { .operator-bento { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .operator-overview { padding: 18px; gap: 20px; }
+  .operator-metrics { grid-template-columns: 1fr; }
+  .operator-metrics > div { min-height: 120px; }
+  .operator-overview section { padding: 20px; border-radius: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .operator-overview *, .operator-shell:has(.operator-overview) nav a { transition: none !important; transform: none !important; }
+}

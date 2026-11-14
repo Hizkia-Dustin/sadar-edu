@@ -1,7 +1,10 @@
-﻿import { useNavigate } from 'react-router-dom';
+﻿import { useEffect, lazy, Suspense } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Database, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { useOperatorStore } from '../../store/useOperatorStore';
 import { isProvenanceComplete } from '../../lib/operatorImport';
+import './operator-dashboard.css';
+const OperatorMapPreview = lazy(() => import('../../components/operator/OperatorMapPreview'));
 import {
   BTN_PRIMARY,
   CARD,
@@ -36,69 +39,41 @@ const ALERTS = [
   },
 ];
 
-function SchematicMap() {
-  return (
-    <svg
-      viewBox="0 0 706 196"
-      role="img"
-      aria-label="Ilustrasi peta skematis tanpa data lokasi sekolah"
-      className="h-auto w-full"
-    >
-      <rect width="706" height="196" fill="#edf3f6" />
-      <path d="M0 30 L150 0 H706 V96 L520 126 L270 96 L0 122 Z" fill="#dfe9dc" />
-      <path d="M0 150 L260 118 L520 140 L706 110 V196 H0 Z" fill="#dfe9dc" />
-      <path
-        d="M372 0 C346 58 392 112 360 196"
-        fill="none"
-        stroke="#bfe3ec"
-        strokeWidth="24"
-        strokeLinecap="round"
-      />
-      <g fill="none" stroke="#ffffff" strokeWidth="5" strokeLinecap="round">
-        <path d="M0 74 L706 112" />
-        <path d="M130 0 L186 196" />
-        <path d="M486 0 L530 196" />
-        <path d="M260 22 L430 118 L706 88" />
-      </g>
-      <path
-        d="M0 172 C210 124 400 134 706 70"
-        fill="none"
-        stroke="#e6a03c"
-        strokeWidth="1.5"
-      />
-      <g fill="#1b4965" stroke="#ffffff" strokeWidth="2">
-        <circle cx="160" cy="95" r="6" />
-        <circle cx="318" cy="72" r="6" />
-        <circle cx="436" cy="113" r="6" />
-        <circle cx="548" cy="64" r="6" />
-      </g>
-    </svg>
-  );
-}
 
 export default function OperatorDashboard() {
   const navigate = useNavigate();
   const versions = useOperatorStore((state) => state.versions);
   const activity = useOperatorStore((state) => state.activity);
+  const fetchDatasets = useOperatorStore((state) => state.fetchDatasets);
 
   const validation = useOperatorStore((state) => state.validation);
   const provenance = useOperatorStore((state) => state.provenance);
   const submission = useOperatorStore((state) => state.submission);
-  const countByStatus = (status) => versions.filter((version) => version.status === status).length;
 
-  // Angka baru muncul setelah ada validasi, sebelum itu tampil penanda kosong.
+  useEffect(() => {
+    fetchDatasets();
+  }, [fetchDatasets]);
+
+  const countByStatus = (status) => versions.filter((version) => version.status === status).length;
+  const activeDatasets = versions.filter((v) => v.aktif !== false).length;
+
   const metrics = [
-    { label: 'Dataset aktif', value: EMPTY, note: 'Versi belum tersedia', accent: 'bg-[#1b4965]' },
+    {
+      label: 'Dataset aktif',
+      value: activeDatasets > 0 ? activeDatasets : (versions.length > 0 ? versions.length : EMPTY),
+      note: activeDatasets > 0 ? `${activeDatasets} dataset aktif di server` : 'Versi belum tersedia',
+      accent: 'bg-[#1b4965]',
+    },
     {
       label: 'Siap ditinjau',
-      value: validation ? countByStatus('Siap ditinjau') : EMPTY,
-      note: validation ? 'Lolos validasi' : 'Menunggu validasi',
+      value: validation ? countByStatus('Siap ditinjau') : countByStatus('Siap digunakan'),
+      note: validation ? 'Lolos validasi draf' : (versions.length > 0 ? `${countByStatus('Siap digunakan')} dataset valid` : 'Menunggu validasi'),
       accent: 'bg-[#3fa796]',
     },
     {
       label: 'Perlu perbaikan',
-      value: validation ? countByStatus('Perlu perbaikan') : EMPTY,
-      note: validation ? 'Dari validasi terakhir' : 'Belum dihitung',
+      value: validation ? countByStatus('Perlu perbaikan') : 0,
+      note: validation ? 'Dari validasi terakhir' : 'Belum divalidasi',
       accent: 'bg-[#85520c]',
     },
   ];
@@ -134,11 +109,11 @@ export default function OperatorDashboard() {
   ];
 
   return (
-    <div className="flex flex-col gap-5 p-4 sm:p-7">
+    <div className="operator-overview flex flex-col gap-5 p-4 sm:p-7">
       <PageHeader
         eyebrow="Ringkasan"
-        title="Dashboard Operator Data"
-        description="Pantau kesiapan dataset, pemeriksaan kualitas, dan pengajuan terbaru."
+        title="Ringkasan data sekolah"
+        description="Periksa sebaran sekolah dan selesaikan pembaruan data Anda."
         action={
           <button
             type="button"
@@ -150,33 +125,46 @@ export default function OperatorDashboard() {
         }
       />
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_344px]">
-        <div className="flex min-w-0 flex-col gap-4">
-          <div className="grid gap-3.5 sm:grid-cols-3">
+      <div className="operator-bento grid gap-5 lg:grid-cols-[minmax(0,1fr)_344px]">
+        <div className="operator-bento-main flex min-w-0 flex-col gap-4">
+          <div className="operator-metrics grid gap-3.5 sm:grid-cols-3">
             {metrics.map((metric) => (
               <MetricCard key={metric.label} {...metric} />
             ))}
           </div>
 
-          <section aria-labelledby="judul-cakupan" className={`${CARD} p-[17px]`}>
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#c2d7e5] bg-[#edf5f8] p-3 text-xs text-[#1b4965]">
+            <p className="min-w-[200px] flex-1 leading-relaxed">
+              Tinjau versi dataset atau perbarui informasi sekolah dari halaman pengelolaan data.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/operator/dataset')}
+              className="font-bold underline hover:text-[#0f2c3d]"
+            >
+              Kelola data sekolah
+            </button>
+          </div>
+
+          <section aria-labelledby="judul-cakupan" className={`operator-coverage ${CARD} p-[17px]`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 id="judul-cakupan" className="text-base font-semibold leading-6">
                   Cakupan lokasi sekolah
                 </h2>
                 <p className="text-[11px] font-medium leading-4 text-[#445665]">
-                  Peta skematis &bull; bukan lokasi nyata
+                  Data server dan lokasi draf yang sedang dikelola
                 </p>
               </div>
-              <StatusPill>Data belum terhubung</StatusPill>
+              <StatusPill>Pratinjau interaktif</StatusPill>
             </div>
             <div className="mt-3 overflow-hidden rounded-lg">
-              <SchematicMap />
+              <Suspense fallback={<p>Memuat peta…</p>}><OperatorMapPreview /></Suspense>
             </div>
           </section>
         </div>
 
-        <section aria-labelledby="judul-perhatian" className={`${CARD} p-[17px]`}>
+        <section aria-labelledby="judul-perhatian" className={`operator-attention ${CARD} p-[17px]`}>
           <h2 id="judul-perhatian" className="text-base font-semibold leading-6">Perhatian data</h2>
           <p className="text-xs leading-[18px] text-[#445665]">
             Aturan yang memerlukan tindakan operator.
@@ -203,7 +191,7 @@ export default function OperatorDashboard() {
         </section>
       </div>
 
-      <section aria-labelledby="judul-aktivitas" className={`${CARD} p-[17px]`}>
+      <section aria-labelledby="judul-aktivitas" className={`operator-activity ${CARD} p-[17px]`}>
         <h2 id="judul-aktivitas" className="text-base font-semibold leading-6">Aktivitas terbaru</h2>
         <p className="text-xs leading-[18px] text-[#445665]">
           Perubahan dataset dan keputusan akan muncul di sini.

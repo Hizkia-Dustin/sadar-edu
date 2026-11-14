@@ -228,6 +228,7 @@ CREATE INDEX IF NOT EXISTS idx_candidate_tahun ON candidate_area (tahun);
 ALTER TABLE sekolah ADD COLUMN IF NOT EXISTS kabupaten_kota VARCHAR(40);
 ALTER TABLE sekolah ADD COLUMN IF NOT EXISTS kecamatan_asal VARCHAR(100);
 ALTER TABLE sekolah ADD COLUMN IF NOT EXISTS desa_kelurahan VARCHAR(100);
+ALTER TABLE sekolah ADD COLUMN IF NOT EXISTS foto_url TEXT;
 ALTER TABLE statistik_pendidikan ADD COLUMN IF NOT EXISTS ruang_kelas_baik INT;
 ALTER TABLE statistik_pendidikan ADD COLUMN IF NOT EXISTS ruang_kelas_rusak_ringan INT;
 ALTER TABLE statistik_pendidikan ADD COLUMN IF NOT EXISTS ruang_kelas_rusak_sedang INT;

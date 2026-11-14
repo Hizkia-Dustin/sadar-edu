@@ -18,7 +18,6 @@ const OperatorRepair = lazy(() => import("./pages/operator/OperatorRepair"));
 const OperatorReview = lazy(() => import("./pages/operator/OperatorReview"));
 const OperatorStatus = lazy(() => import("./pages/operator/OperatorStatus"));
 const OperatorIndicator = lazy(() => import("./pages/operator/OperatorIndicator"));
-const OperatorLogin = lazy(() => import("./pages/operator/OperatorLogin"));
 
 const AwwwardsLoader = lazy(() => import("./components/ui/AwwwardsLoader"));
 const PageTransition = lazy(() => import("./components/ui/PageTransition"));
@@ -29,13 +28,13 @@ export default function App() {
 
 function AppRoutes() {
   const { pathname } = useLocation();
-  const isMapPage = /^\/peta\/?$/.test(pathname);
-  // Halaman peta langsung menampilkan UI tanpa intro video.
-  const [isInitialLoading, setIsInitialLoading] = useState(() => !isMapPage);
+  const isDirectPage = /^\/(peta|login)\/?$/.test(pathname) || /^\/operator(?:\/|$)/.test(pathname);
+  // Peta dan autentikasi harus langsung siap digunakan tanpa intro video.
+  const [isInitialLoading, setIsInitialLoading] = useState(() => !isDirectPage);
 
   return (
     <>
-      {!isMapPage && <Suspense fallback={null}>
+      {!isDirectPage && <Suspense fallback={null}>
         {isInitialLoading && <AwwwardsLoader onComplete={() => setIsInitialLoading(false)} />}
         <PageTransition />
       </Suspense>}
@@ -72,7 +71,8 @@ function AppRoutes() {
           </Route>
 
           {/* FLOW OPERATOR (RUTE RUANG KERJA & ALUR AUDIT DATASET) */}
-          <Route path="/operator/login" element={<OperatorLogin />} />
+          {/* URL lama tetap bekerja, tetapi seluruh peran memakai satu formulir autentikasi. */}
+          <Route path="/operator/login" element={<Navigate to="/login" replace />} />
           <Route path="/operator" element={<OperatorLayout />}>
             <Route index element={<Navigate to="/operator/dashboard" replace />} />
             <Route path="dashboard" element={<OperatorDashboard />} />
@@ -81,6 +81,7 @@ function AppRoutes() {
             <Route path="validasi" element={<OperatorValidation />} />
             <Route path="validasi/perbaikan" element={<OperatorRepair />} />
             <Route path="pengajuan" element={<OperatorReview />} />
+            <Route path="pengajuan/status" element={<OperatorStatus />} />
             <Route path="status" element={<OperatorStatus />} />
             <Route path="indikator" element={<OperatorIndicator />} />
           </Route>

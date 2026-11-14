@@ -96,8 +96,15 @@ function SchoolDetail({ school, onBack, onClose, onFocus, onCompare, compared, c
       <div className="explorer-detail-content">
         <button className="explorer-back" onClick={onBack}><ArrowLeft size={16} /> Kembali ke hasil</button>
         <figure className="explorer-detail-photo">
-          <img src={schoolIllustration} alt="Ilustrasi bangunan dan halaman sekolah" width={1774} height={887} decoding="async" />
-          <figcaption>Foto ilustrasi · Foto sekolah ini belum tersedia</figcaption>
+          <img
+            src={p.fotoUrl || schoolIllustration}
+            alt={p.nama ? `Foto ${p.nama}` : "Ilustrasi bangunan dan halaman sekolah"}
+            width={1774}
+            height={887}
+            decoding="async"
+            onError={(e) => { e.currentTarget.src = schoolIllustration; }}
+          />
+          <figcaption>{p.fotoUrl ? `Foto ${p.nama}` : "Foto ilustrasi · Foto sekolah ini belum tersedia"}</figcaption>
         </figure>
         <div className="explorer-detail-title">
           <div className="explorer-school-icon"><School size={22} /></div>
