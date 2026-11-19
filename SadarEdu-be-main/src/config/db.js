@@ -6,16 +6,34 @@ require('dotenv').config();
 types.setTypeParser(20, (v) => (v === null ? null : parseInt(v, 10)));
 types.setTypeParser(1700, (v) => (v === null ? null : parseFloat(v)));
 
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432', 10),
-  user: process.env.DB_USER || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
-  database: process.env.DB_NAME || 'SadarEdu',
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 5000,
-});
+const dbHost = process.env.DB_HOST || 'localhost';
+const useSsl =
+  process.env.DB_SSL === 'true' ||
+  dbHost.includes('.supabase.co') ||
+  dbHost.includes('.supabase.com') ||
+  (process.env.DATABASE_URL || '').includes('supabase.');
+
+const poolConfig = process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+      max: process.env.VERCEL ? 5 : 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 15000,
+    }
+  : {
+      host: dbHost,
+      port: parseInt(process.env.DB_PORT || '5432', 10),
+      user: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'postgres',
+      database: process.env.DB_NAME || 'SadarEdu',
+      ssl: useSsl ? { rejectUnauthorized: false } : undefined,
+      max: process.env.VERCEL ? 5 : 20,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 15000,
+    };
+
+const pool = new Pool(poolConfig);
 
 pool.on('error', (err) => {
   console.error('❌ Unexpected PostgreSQL pool error:', err);

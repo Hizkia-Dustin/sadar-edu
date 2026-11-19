@@ -1,0 +1,9 @@
+node_modules
+sadar-edu-main/node_modules
+sadar-edu-main/dist
+SadarEdu-be-main/node_modules
+SadarEdu-be-main/.env
+wilayah_kecamatan_bogor.json
+SMPbogorSudahDiolah.json
+batas_bogor_big.geojson
+.git

@@ -5,6 +5,7 @@ package-lock.json
 # Build & test outputs
 dist/
 test-results/
+.vercel/
 
 # Environment files
 .env
@@ -19,3 +20,5 @@ test-results/
 skills/
 .taste-skill/
 *skill*
+.vercel
+.env*

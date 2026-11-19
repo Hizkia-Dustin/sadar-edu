@@ -1,0 +1,14 @@
+{
+  "buildCommand": "npm --prefix sadar-edu-main install && npm --prefix sadar-edu-main run build",
+  "outputDirectory": "sadar-edu-main/dist",
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 60,
+      "includeFiles": "SadarEdu-be-main/src/**"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
