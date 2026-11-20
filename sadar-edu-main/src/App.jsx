@@ -19,8 +19,7 @@ const OperatorReview = lazy(() => import("./pages/operator/OperatorReview"));
 const OperatorStatus = lazy(() => import("./pages/operator/OperatorStatus"));
 const OperatorIndicator = lazy(() => import("./pages/operator/OperatorIndicator"));
 
-const AwwwardsLoader = lazy(() => import("./components/ui/AwwwardsLoader"));
-const PageTransition = lazy(() => import("./components/ui/PageTransition"));
+const EditorialIntro = lazy(() => import("./components/ui/AwwwardsLoader"));
 
 export default function App() {
   return <BrowserRouter><AppRoutes /></BrowserRouter>;
@@ -28,16 +27,33 @@ export default function App() {
 
 function AppRoutes() {
   const { pathname } = useLocation();
-  const isDirectPage = /^\/(peta|login)\/?$/.test(pathname) || /^\/operator(?:\/|$)/.test(pathname);
-  // Peta dan autentikasi harus langsung siap digunakan tanpa intro video.
-  const [isInitialLoading, setIsInitialLoading] = useState(() => !isDirectPage);
+
+  // Intro hanya muncul saat pertama kali membuka website / masuk ke landing page utama ('/')
+  const [showIntro, setShowIntro] = useState(() => {
+    if (pathname !== "/") return false;
+    try {
+      return sessionStorage.getItem("sadaredu_has_seen_intro") !== "1";
+    } catch {
+      return false;
+    }
+  });
+
+  const handleIntroComplete = () => {
+    try {
+      sessionStorage.setItem("sadaredu_has_seen_intro", "1");
+    } catch {
+      /* abaikan error sessionStorage pada private browsing */
+    }
+    setShowIntro(false);
+  };
 
   return (
     <>
-      {!isDirectPage && <Suspense fallback={null}>
-        {isInitialLoading && <AwwwardsLoader onComplete={() => setIsInitialLoading(false)} />}
-        <PageTransition />
-      </Suspense>}
+      {showIntro && (
+        <Suspense fallback={null}>
+          <EditorialIntro onComplete={handleIntroComplete} />
+        </Suspense>
+      )}
 
       <div className="w-full min-h-screen bg-[#F8FAFC] font-sans text-slate-800 antialiased">
         <Suspense fallback={<div className="p-6 text-sm text-slate-600" role="status">Memuat halaman...</div>}>
