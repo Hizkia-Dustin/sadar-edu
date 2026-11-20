@@ -4,11 +4,25 @@ import { create } from 'zustand';
 const KABUPATEN_VIEW = { longitude: 106.82, latitude: -6.55, zoom: 9.8, pitch: 0, bearing: 0 };
 
 export const useMapStore = create((set) => ({
+  mapMode: '2d', // '2d' | '3d'
+  setMapMode: (mode) => set({ mapMode: mode }),
+  toggleMapMode: () => set((state) => ({ mapMode: state.mapMode === '3d' ? '2d' : '3d' })),
+
   viewState: { ...KABUPATEN_VIEW },
   setViewState: (viewState) => set({ viewState }),
 
   flyToRegion: (lng, lat, zoom = 14) =>
-    set((state) => ({ viewState: { ...state.viewState, longitude: lng, latitude: lat, zoom, pitch: 0, transitionDuration: 1000 } })),
+    set((state) => ({
+      viewState: {
+        ...state.viewState,
+        longitude: lng,
+        latitude: lat,
+        zoom,
+        pitch: state.mapMode === '3d' ? 56 : 0,
+        bearing: state.mapMode === '3d' ? -14 : 0,
+        transitionDuration: 1000,
+      },
+    })),
 
   // Permintaan fitBounds ([minLng, minLat, maxLng, maxLat]); dieksekusi oleh MapCanvas
   pendingBounds: null,
@@ -18,7 +32,15 @@ export const useMapStore = create((set) => ({
     if (!feature || !feature.geometry || !Array.isArray(feature.geometry.coordinates)) return;
     const [lng, lat] = feature.geometry.coordinates;
     set((state) => ({
-      viewState: { ...state.viewState, longitude: lng, latitude: lat, zoom: 15, pitch: 0, transitionDuration: 900 },
+      viewState: {
+        ...state.viewState,
+        longitude: lng,
+        latitude: lat,
+        zoom: 15,
+        pitch: state.mapMode === '3d' ? 56 : 0,
+        bearing: state.mapMode === '3d' ? -14 : 0,
+        transitionDuration: 900,
+      },
       pendingBounds: { bbox: [lng - 0.003, lat - 0.003, lng + 0.003, lat + 0.003], nonce: Date.now() },
       selectedFeature: { longitude: lng, latitude: lat, properties: feature.properties || {} },
     }));

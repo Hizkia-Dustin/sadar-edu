@@ -4,6 +4,36 @@ export const BOGOR_BOUNDARY = boundary;
 const [west, south, east, north] = boundary.bbox;
 export const BOGOR_BOUNDS = [[west, south], [east, north]];
 
+// Batas dengan toleransi ~9km untuk keleluasaan rotasi/kemiringan kamera mode 3D
+const BOUNDS_PAD = 0.08;
+export const BOGOR_EXTENDED_BOUNDS = [
+  [west - BOUNDS_PAD, south - BOUNDS_PAD],
+  [east + BOUNDS_PAD, north + BOUNDS_PAD],
+];
+
+const WORLD_RING = [
+  [-180, -90],
+  [180, -90],
+  [180, 90],
+  [-180, 90],
+  [-180, -90],
+];
+
+// Inverse polygon mask: menutupi area luar batas Bogor sehingga peta terpotong rapi hanya menampilkan Bogor
+export const BOGOR_MASK_GEOJSON = {
+  type: "FeatureCollection",
+  features: [
+    {
+      type: "Feature",
+      properties: { name: "BOGOR_MASK" },
+      geometry: {
+        type: "Polygon",
+        coordinates: [WORLD_RING, boundary.geometry.coordinates[0]],
+      },
+    },
+  ],
+};
+
 function ringContains([x, y], ring) {
   let inside = false;
   for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {

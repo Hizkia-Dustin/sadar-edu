@@ -1,10 +1,16 @@
-import { LocateFixed, Layers, ArrowRight, Plus, Check } from "lucide-react";
+import { LocateFixed, Layers, ArrowRight, Plus, Check, Mountain, Map as MapIcon } from "lucide-react";
 import { useRef, useCallback, useEffect, useMemo, useState } from "react";
 import MapView, { NavigationControl, Source, Layer, Popup } from "react-map-gl/mapbox";
 import { useMapStore } from "../../store/useMapStore";
 import { useDataStore } from "../../store/useDataStore";
 import { rescoreFeatures, colorOf } from "../../lib/analysis";
-import { BOGOR_BOUNDARY, BOGOR_BOUNDS, isInBogor } from "../../lib/bogorBoundary";
+import {
+  BOGOR_BOUNDARY,
+  BOGOR_BOUNDS,
+  BOGOR_EXTENDED_BOUNDS,
+  BOGOR_MASK_GEOJSON,
+  isInBogor,
+} from "../../lib/bogorBoundary";
 import { populationColor } from "../../lib/population";
 import kabupatenBoundary from "../../data/kabupaten-bogor.geojson.json";
 import { useDistrictHover } from "./useDistrictHover";
@@ -15,6 +21,7 @@ const UNCLUSTERED = ["!", ["has", "point_count"]];
 const schoolLayerStyle = {
   id: "schools-layer",
   type: "circle",
+  slot: "top",
   paint: {
     "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 4, 11, 5.5, 14, 7.5, 16, 9.5],
     "circle-color": ["match", ["get", "status"], "Negeri", "#0f766e", "Swasta", "#d97706", "#64748B"],
@@ -143,6 +150,8 @@ export default function MapCanvas({
     setSelectedWilayahId,
     selectedCandidateId,
     setSelectedCandidateId,
+    mapMode,
+    toggleMapMode,
   } = useMapStore();
   const activeLayers = publicLayers || storedLayers;
   const districtHover = useDistrictHover({
@@ -150,7 +159,15 @@ export default function MapCanvas({
     population,
     popupOpen: Boolean(selectedFeature || (activeLayers?.populationLayer && populationPopup)),
   });
-  const mapConfig = useMemo(() => ({ basemap: { lightPreset: "day", show3dObjects: Boolean(activeLayers?.show3DBuildings) } }), [activeLayers?.show3DBuildings]);
+  const mapConfig = useMemo(
+    () => ({
+      basemap: {
+        lightPreset: "day",
+        show3dObjects: Boolean(activeLayers?.show3DBuildings || mapMode === "3d"),
+      },
+    }),
+    [activeLayers?.show3DBuildings, mapMode]
+  );
   const syncViewState = useCallback(
     (event) => {
       publishedCamera.current = event.viewState;
@@ -173,11 +190,54 @@ export default function MapCanvas({
     map.easeTo({
       center: [viewState.longitude, viewState.latitude],
       zoom: viewState.zoom,
-      bearing: viewState.bearing || 0,
-      pitch: 0,
+      bearing: viewState.bearing !== undefined ? viewState.bearing : (mapMode === "3d" ? -14 : 0),
+      pitch: mapMode === "3d" ? (viewState.pitch || 56) : 0,
       duration: viewState.transitionDuration || 0,
     });
-  }, [viewState]);
+  }, [viewState, mapMode]);
+
+  // Transisi halus ketika berganti antara mode 2D Standar dan 3D Terrain
+  useEffect(() => {
+    if (!mapRef.current) return;
+    const map = mapRef.current.getMap();
+    if (!map) return;
+
+    const applyTerrain = () => {
+      try {
+        if (mapMode === "3d") {
+          if (!map.getSource("mapbox-dem")) {
+            map.addSource("mapbox-dem", {
+              type: "raster-dem",
+              url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+              tileSize: 512,
+              maxzoom: 14,
+            });
+          }
+          map.setTerrain({ source: "mapbox-dem", exaggeration: 1.5 });
+          map.easeTo({
+            pitch: 56,
+            bearing: -14,
+            duration: 1200,
+          });
+        } else {
+          map.setTerrain(null);
+          map.easeTo({
+            pitch: 0,
+            bearing: 0,
+            duration: 900,
+          });
+        }
+      } catch {
+        // Abaikan jika style sedang memuat ulang
+      }
+    };
+
+    if (map.isStyleLoaded()) {
+      applyTerrain();
+    } else {
+      map.once("style.load", applyTerrain);
+    }
+  }, [mapMode]);
 
   const { prioritas, meta, weights, sekolah, blankSpots, coverage, candidates, kecamatan } = useDataStore();
   const displayedBlankSpots = publicExplorer && publicBlankSpots ? publicBlankSpots : blankSpots;
@@ -302,26 +362,49 @@ export default function MapCanvas({
 
   const fitPublicSchools = useCallback(() => {
     if (initiallyFitted.current || !mapRef.current) return;
-    mapRef.current.fitBounds(BOGOR_BOUNDS, { padding: cameraPadding(), duration: 0, maxZoom: 11, retainPadding: false });
+    mapRef.current.fitBounds(BOGOR_BOUNDS, {
+      padding: cameraPadding(),
+      duration: 0,
+      maxZoom: 11,
+      pitch: mapMode === "3d" ? 56 : 0,
+      bearing: mapMode === "3d" ? -14 : 0,
+      retainPadding: false,
+    });
     initiallyFitted.current = true;
-  }, [cameraPadding]);
+  }, [cameraPadding, mapMode]);
   useEffect(() => {
     fitPublicSchools();
   }, [fitPublicSchools]);
 
   const onMapLoad = useCallback(
     (evt) => {
+      const map = evt.target;
       try {
-        evt.target.setConfigProperty("basemap", "show3dObjects", Boolean(activeLayers?.show3DBuildings));
+        map.setConfigProperty("basemap", "show3dObjects", Boolean(activeLayers?.show3DBuildings || mapMode === "3d"));
       } catch {
         // Ignore if style does not support basemap config
       }
-      evt.target.fire("styledata");
+      try {
+        if (mapMode === "3d") {
+          if (!map.getSource("mapbox-dem")) {
+            map.addSource("mapbox-dem", {
+              type: "raster-dem",
+              url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+              tileSize: 512,
+              maxzoom: 14,
+            });
+          }
+          map.setTerrain({ source: "mapbox-dem", exaggeration: 1.5 });
+        }
+      } catch {
+        // Ignore
+      }
+      map.fire("styledata");
       setStyleTick((t) => t + 1);
       fitPublicSchools();
       if (typeof onMapLoaded === "function") onMapLoaded();
     },
-    [activeLayers, onMapLoaded, fitPublicSchools]
+    [activeLayers, onMapLoaded, fitPublicSchools, mapMode]
   );
 
   useEffect(() => {
@@ -483,14 +566,22 @@ export default function MapCanvas({
       {publicExplorer && (
         <div className="explorer-map-tools" aria-label="Alat peta">
           <button
-            title="Tampilkan semua hasil"
-            aria-label="Tampilkan semua hasil"
+            title="Tampilkan seluruh Bogor"
+            aria-label="Tampilkan seluruh Bogor"
             onClick={() => {
               initiallyFitted.current = false;
               fitPublicSchools();
             }}
           >
             <LocateFixed size={19} />
+          </button>
+          <button
+            title={mapMode === "3d" ? "Kembali ke mode 2D Standar" : "Beralih ke mode 3D Terrain"}
+            aria-label={mapMode === "3d" ? "Kembali ke mode 2D Standar" : "Beralih ke mode 3D Terrain"}
+            onClick={toggleMapMode}
+            className={mapMode === "3d" ? "is-3d-active" : ""}
+          >
+            {mapMode === "3d" ? <MapIcon size={19} /> : <Mountain size={19} />}
           </button>
           <button title="Lapisan peta" aria-label="Lapisan peta" onClick={onOpenLayers}>
             <Layers size={19} />
@@ -499,7 +590,7 @@ export default function MapCanvas({
       )}
       <MapView
         ref={mapRef}
-        initialViewState={{ ...viewState, pitch: 0 }}
+        initialViewState={{ ...viewState, pitch: mapMode === "3d" ? 56 : 0 }}
         onMoveEnd={syncViewState}
         mapStyle="mapbox://styles/mapbox/standard"
         config={mapConfig}
@@ -507,9 +598,13 @@ export default function MapCanvas({
         onLoad={onMapLoad}
         onStyleData={() => setStyleTick((t) => t + 1)}
         projection="mercator"
-        maxPitch={0}
+        maxPitch={mapMode === "3d" ? 75 : 0}
+        minPitch={0}
         minZoom={8}
-        {...(publicExplorer ? { maxBounds: BOGOR_BOUNDS, onMouseMove: districtHover.move } : {})}
+        dragRotate={mapMode === "3d"}
+        touchPitch={mapMode === "3d"}
+        terrain={mapMode === "3d" ? { source: "mapbox-dem", exaggeration: 1.5 } : undefined}
+        {...(publicExplorer ? { maxBounds: BOGOR_EXTENDED_BOUNDS, onMouseMove: districtHover.move } : {})}
         renderWorldCopies={!publicExplorer}
         interactiveLayerIds={interactiveLayerIds}
         onClick={(event) => {
@@ -523,7 +618,55 @@ export default function MapCanvas({
           districtHover.hide();
         }}
       >
-        <NavigationControl position={publicExplorer ? "top-right" : "bottom-right"} showCompass={false} visualizePitch={false} />
+        <NavigationControl
+          position={publicExplorer ? "top-right" : "bottom-right"}
+          showCompass={mapMode === "3d"}
+          visualizePitch={mapMode === "3d"}
+        />
+
+        {/* Raster DEM source untuk terrain 3D */}
+        <Source
+          id="mapbox-dem"
+          type="raster-dem"
+          url="mapbox://mapbox.mapbox-terrain-dem-v1"
+          tileSize={512}
+          maxzoom={14}
+        />
+
+        {/* Masking Luar Wilayah: Memotong peta agar fokus visual hanya menampilkan Bogor */}
+        {publicExplorer && (
+          <Source id="bogor-mask-source" type="geojson" data={BOGOR_MASK_GEOJSON} tolerance={0}>
+            <Layer
+              id="bogor-mask-fill"
+              type="fill"
+              slot="top"
+              paint={{
+                "fill-color": mapMode === "3d" ? "#0f172a" : "#e9eee8",
+                "fill-opacity": mapMode === "3d" ? 0.94 : 0.98,
+              }}
+            />
+            <Layer
+              id="bogor-mask-glow"
+              type="line"
+              slot="top"
+              paint={{
+                "line-color": mapMode === "3d" ? "rgba(16, 185, 129, 0.4)" : "rgba(31, 111, 95, 0.25)",
+                "line-width": 5,
+                "line-opacity": 0.6,
+              }}
+            />
+            <Layer
+              id="bogor-mask-line"
+              type="line"
+              slot="top"
+              paint={{
+                "line-color": "#1f6f5f",
+                "line-width": 2.2,
+                "line-opacity": 0.95,
+              }}
+            />
+          </Source>
+        )}
 
         {activeLayers?.showCoverage && coverage.features.length > 0 && (
           <Source id="coverage-source" type="geojson" data={coverage} tolerance={0}>
@@ -572,8 +715,8 @@ export default function MapCanvas({
             clusterMaxZoom={12}
             clusterRadius={publicExplorer ? 42 : 52}
           >
-            <Layer id="school-clusters" type="circle" filter={["has", "point_count"]} paint={clusterCirclePaint} />
-            <Layer id="school-cluster-count" type="symbol" filter={["has", "point_count"]} layout={clusterCountLayout} paint={{ "text-color": "#ffffff" }} />
+            <Layer id="school-clusters" type="circle" slot="top" filter={["has", "point_count"]} paint={clusterCirclePaint} />
+            <Layer id="school-cluster-count" type="symbol" slot="top" filter={["has", "point_count"]} layout={clusterCountLayout} paint={{ "text-color": "#ffffff" }} />
             <Layer {...schoolLayerStyle} filter={UNCLUSTERED} />
           </Source>
         )}
