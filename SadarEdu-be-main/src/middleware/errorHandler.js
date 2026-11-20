@@ -5,7 +5,6 @@ const PG_ERRORS = {
   '23502': [400, 'Ada kolom wajib yang kosong.'],
   '22P02': [400, 'Format data tidak valid.'],
   '22023': [400, 'Parameter tidak valid.'],
-  XX000: [400, 'Geometri tidak valid.'],
 };
 
 const errorHandler = (err, req, res, next) => { // eslint-disable-line no-unused-vars
@@ -14,7 +13,19 @@ const errorHandler = (err, req, res, next) => { // eslint-disable-line no-unused
   let status = err.status || (res.statusCode && res.statusCode !== 200 ? res.statusCode : 500);
   let message = err.message || 'Internal Server Error';
 
-  if (err.code && PG_ERRORS[err.code]) {
+  if (err.code === 'XX000') {
+    const msgLower = (err.message || '').toLowerCase();
+    if (msgLower.includes('geom') || msgLower.includes('postgis') || msgLower.includes('parse error')) {
+      status = 400;
+      message = 'Geometri spasial tidak valid atau koordinat salah format.';
+    } else if (msgLower.includes('max clients') || msgLower.includes('connection') || msgLower.includes('pool')) {
+      status = 503;
+      message = 'Koneksi database sedang sibuk. Silakan muat ulang sesaat lagi.';
+    } else {
+      status = 500;
+      message = 'Terjadi kendala internal pada database.';
+    }
+  } else if (err.code && PG_ERRORS[err.code]) {
     [status, message] = PG_ERRORS[err.code];
   } else if (err.type === 'entity.too.large') {
     status = 413;

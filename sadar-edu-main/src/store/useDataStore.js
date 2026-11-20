@@ -34,9 +34,9 @@ export const useDataStore = create((set, get) => ({
         api.get('/wilayah/list', { level: 'Kecamatan' }),
         api.get('/sekolah/geojson'),
         api.get('/analisis/prioritas'),
-        api.get('/analisis/blank-spots'),
+        api.get('/analisis/blank-spots').catch(() => ({ data: EMPTY_FC })),
         api.get('/analisis/coverage').catch(() => ({ data: EMPTY_FC })),
-        api.get('/analisis/ringkasan'),
+        api.get('/analisis/ringkasan').catch(() => ({ data: null })),
       ]);
       const prevWeights = get().weights;
       const defaultWeights = initialWeights(pri.data.meta.indikator);
