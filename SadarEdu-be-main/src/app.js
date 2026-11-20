@@ -19,9 +19,9 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-app.use('/api/v1', apiRoutes);
+app.use(['/api/v1', '/v1'], apiRoutes);
 
-app.get('/', (req, res) => {
+app.get(['/', '/api'], (req, res) => {
   res.json({ message: 'Selamat datang di SadarEdu RESTful API (PostgreSQL + PostGIS)', docs: '/api/v1/health' });
 });
 
