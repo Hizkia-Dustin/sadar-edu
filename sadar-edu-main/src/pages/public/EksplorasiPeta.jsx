@@ -18,8 +18,6 @@ import {
   RotateCcw,
   SlidersHorizontal,
   ChevronRight,
-  Mountain,
-  Map as MapIcon,
 } from "lucide-react";
 const MapCanvas = lazy(() => import("../../components/map/MapCanvas"));
 import CompareModal from "../../components/ui/CompareModal";
@@ -152,8 +150,6 @@ export default function EksplorasiPeta() {
     selectedWilayahId,
     setSelectedWilayahId,
     flyToBounds,
-    mapMode,
-    setMapMode,
   } = useMapStore(
     useShallow((state) => ({
       flyToRegion: state.flyToRegion,
@@ -164,8 +160,6 @@ export default function EksplorasiPeta() {
       selectedWilayahId: state.selectedWilayahId,
       setSelectedWilayahId: state.setSelectedWilayahId,
       flyToBounds: state.flyToBounds,
-      mapMode: state.mapMode,
-      setMapMode: state.setMapMode,
     }))
   );
   const { sekolah, kecamatan, ringkasan, loaded, loading, error, loadPublic } = useDataStore();
@@ -306,31 +300,6 @@ export default function EksplorasiPeta() {
         <button className={isSidebarOpen ? "is-active" : ""} onClick={() => setIsSidebarOpen(!isSidebarOpen)} aria-expanded={isSidebarOpen} aria-controls="explorer-panel"><School size={16} /> Jelajahi</button>
         <Link to="/">Beranda</Link>
       </nav>
-      {/* Switcher Mode Peta: 2D Standar vs 3D Terrain */}
-      <div className="explorer-floating-modes" role="radiogroup" aria-label="Mode perspektif peta">
-        <button
-          type="button"
-          role="radio"
-          aria-checked={mapMode === "2d"}
-          className={mapMode === "2d" ? "is-active" : ""}
-          onClick={() => setMapMode("2d")}
-          title="Mode 2D Standar: Peta datar fokus wilayah Kabupaten Bogor"
-        >
-          <MapIcon size={14} />
-          <span>2D Peta</span>
-        </button>
-        <button
-          type="button"
-          role="radio"
-          aria-checked={mapMode === "3d"}
-          className={mapMode === "3d" ? "is-active" : ""}
-          onClick={() => setMapMode("3d")}
-          title="Mode 3D Terrain: Visualisasi relief elevasi DEM topografi perbukitan Bogor"
-        >
-          <Mountain size={14} />
-          <span>3D Terrain</span>
-        </button>
-      </div>
       <Link to="/login" className="explorer-floating-login">Masuk pengelola <ChevronRight size={15} /></Link>
       <aside id="explorer-panel" aria-label="Pencarian sekolah" className={`explorer-panel ${isSidebarOpen ? "is-open" : "is-closed"}`} inert={!isSidebarOpen}>
         <div className="explorer-panel-inner">
@@ -526,52 +495,6 @@ export default function EksplorasiPeta() {
             {/* TAB 3: LAYER DAN ANALISIS MCDA */}
             {activeTab === "layers" && (
               <div className="space-y-4">
-                {/* Pilihan Mode Perspektif Peta: 2D vs 3D */}
-                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2">
-                  <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    Mode Perspektif Peta
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setMapMode("2d")}
-                      className={`p-2.5 rounded-xl border text-left transition flex items-start gap-2.5 ${
-                        mapMode === "2d"
-                          ? "bg-[#173E50] text-white border-[#173E50] shadow-sm"
-                          : "bg-white hover:bg-slate-100 text-slate-700 border-slate-200"
-                      }`}
-                    >
-                      <MapIcon size={16} className={mapMode === "2d" ? "text-emerald-400 mt-0.5" : "text-slate-500 mt-0.5"} />
-                      <div>
-                        <p className="text-xs font-semibold leading-tight">2D Standar</p>
-                        <p className={`text-[10px] mt-0.5 ${mapMode === "2d" ? "text-slate-300" : "text-slate-400"}`}>
-                          Peta datar ortogonal
-                        </p>
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMapMode("3d")}
-                      className={`p-2.5 rounded-xl border text-left transition flex items-start gap-2.5 ${
-                        mapMode === "3d"
-                          ? "bg-[#173E50] text-white border-[#173E50] shadow-sm"
-                          : "bg-white hover:bg-slate-100 text-slate-700 border-slate-200"
-                      }`}
-                    >
-                      <Mountain size={16} className={mapMode === "3d" ? "text-emerald-400 mt-0.5" : "text-slate-500 mt-0.5"} />
-                      <div>
-                        <p className="text-xs font-semibold leading-tight">3D Terrain</p>
-                        <p className={`text-[10px] mt-0.5 ${mapMode === "3d" ? "text-slate-300" : "text-slate-400"}`}>
-                          Relief elevasi DEM
-                        </p>
-                      </div>
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-slate-400 leading-tight pt-1">
-                    Wilayah peta dipotong rapi fokus pada batas Kabupaten Bogor. Mode 3D menampilkan kontur perbukitan & gunung.
-                  </p>
-                </div>
-
                 <div>
                   <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
                     Tampilan peta

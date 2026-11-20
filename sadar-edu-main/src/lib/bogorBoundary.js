@@ -2,37 +2,22 @@ import boundary from "../data/bogor.geojson.json" with { type: "json" };
 
 export const BOGOR_BOUNDARY = boundary;
 const [west, south, east, north] = boundary.bbox;
+
+// Bounding box asli batas wilayah
 export const BOGOR_BOUNDS = [[west, south], [east, north]];
 
-// Batas dengan toleransi ~9km untuk keleluasaan rotasi/kemiringan kamera mode 3D
-const BOUNDS_PAD = 0.08;
-export const BOGOR_EXTENDED_BOUNDS = [
-  [west - BOUNDS_PAD, south - BOUNDS_PAD],
-  [east + BOUNDS_PAD, north + BOUNDS_PAD],
+// Headroom ekstra di bagian utara (+0.065) & sekelilingnya agar seluruh Kabupaten Bogor
+// (termasuk Cibinong, Bojonggede, Gunung Putri, Cileungsi, Parung) terlihat utuh & nyaman tanpa terpotong
+export const BOGOR_VIEW_BOUNDS = [
+  [west - 0.04, south - 0.03],
+  [east + 0.04, north + 0.065],
 ];
 
-const WORLD_RING = [
-  [-180, -90],
-  [180, -90],
-  [180, 90],
-  [-180, 90],
-  [-180, -90],
+// Batas navigasi regional bebas agar pengguna leluasa menggeser peta tanpa mentok
+export const REGIONAL_BOUNDS = [
+  [106.10, -7.05],
+  [107.45, -6.15],
 ];
-
-// Inverse polygon mask: menutupi area luar batas Bogor sehingga peta terpotong rapi hanya menampilkan Bogor
-export const BOGOR_MASK_GEOJSON = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: { name: "BOGOR_MASK" },
-      geometry: {
-        type: "Polygon",
-        coordinates: [WORLD_RING, boundary.geometry.coordinates[0]],
-      },
-    },
-  ],
-};
 
 function ringContains([x, y], ring) {
   let inside = false;

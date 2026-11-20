@@ -1,13 +1,9 @@
 import { create } from 'zustand';
 
-// Pusat tampilan Kabupaten Bogor
-const KABUPATEN_VIEW = { longitude: 106.82, latitude: -6.55, zoom: 9.8, pitch: 0, bearing: 0 };
+// Pusat tampilan Kabupaten Bogor (diposisikan proporsional agar utara dan selatan Bogor tercover utuh)
+const KABUPATEN_VIEW = { longitude: 106.82, latitude: -6.52, zoom: 9.8, pitch: 0, bearing: 0 };
 
 export const useMapStore = create((set) => ({
-  mapMode: '2d', // '2d' | '3d'
-  setMapMode: (mode) => set({ mapMode: mode }),
-  toggleMapMode: () => set((state) => ({ mapMode: state.mapMode === '3d' ? '2d' : '3d' })),
-
   viewState: { ...KABUPATEN_VIEW },
   setViewState: (viewState) => set({ viewState }),
 
@@ -18,9 +14,9 @@ export const useMapStore = create((set) => ({
         longitude: lng,
         latitude: lat,
         zoom,
-        pitch: state.mapMode === '3d' ? 56 : 0,
-        bearing: state.mapMode === '3d' ? -14 : 0,
-        transitionDuration: 1000,
+        pitch: 0,
+        bearing: 0,
+        transitionDuration: 850,
       },
     })),
 
@@ -37,9 +33,9 @@ export const useMapStore = create((set) => ({
         longitude: lng,
         latitude: lat,
         zoom: 15,
-        pitch: state.mapMode === '3d' ? 56 : 0,
-        bearing: state.mapMode === '3d' ? -14 : 0,
-        transitionDuration: 900,
+        pitch: 0,
+        bearing: 0,
+        transitionDuration: 800,
       },
       pendingBounds: { bbox: [lng - 0.003, lat - 0.003, lng + 0.003, lat + 0.003], nonce: Date.now() },
       selectedFeature: { longitude: lng, latitude: lat, properties: feature.properties || {} },

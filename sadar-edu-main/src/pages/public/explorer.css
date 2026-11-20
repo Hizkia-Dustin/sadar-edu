@@ -5,10 +5,6 @@
 .explorer-floating-nav button, .explorer-floating-nav a { display: flex; align-items: center; gap: 7px; padding: 11px 16px; border-radius: 24px; }
 .explorer-floating-nav .is-active { background: #1c2933; color: #fff; }
 .explorer-floating-login { right: 20px; padding: 14px 18px; border-radius: 26px; gap: 8px; }
-.explorer-floating-modes { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); z-index: 30; background: #fffffffa; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); display: flex; align-items: center; padding: 4px; border-radius: 30px; gap: 3px; box-shadow: 0 2px 8px #162e3a12; border: 1px solid #dce1eb; }
-.explorer-floating-modes button { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 24px; font-size: 12px; font-weight: 600; color: #475569; transition: all 160ms ease; border: none; background: transparent; cursor: pointer; }
-.explorer-floating-modes button:hover { color: #0f172a; background: #f1f5f9; }
-.explorer-floating-modes button.is-active { background: #173E50; color: #ffffff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12); }
 .explorer-panel { position: absolute; top: 84px; bottom: 26px; left: 16px; width: clamp(320px, 25vw, 370px); z-index: 20; transition: transform 280ms cubic-bezier(.22,1,.36,1), opacity 180ms ease; }
 .explorer-panel.is-closed { transform: translateX(calc(-100% - 20px)); opacity: 0; pointer-events: none; }
 .explorer-panel-inner { height: 100%; display: flex; flex-direction: column; overflow: hidden; background: #fff; border: 1px solid #dce1eb; border-radius: 16px; box-shadow: 0 4px 20px #163d2812; }
@@ -51,7 +47,6 @@
 .explorer-map-tools button { display: grid; place-items: center; width: 46px; height: 46px; color: #263c4a; }
 .explorer-map-tools button + button { border-top: 1px solid #dce3e9; }
 .explorer-map-tools button:hover { background: #eaf0f4; }
-.explorer-map-tools button.is-3d-active { background: #173E50; color: #38bdf8; }
 @keyframes explorer-content-enter {
  from { opacity: 0; transform: translateY(5px); }
  to { opacity: 1; transform: translateY(0); }
@@ -72,8 +67,6 @@
 @media (max-width: 767px) {
  .explorer-floating-nav { left: 12px; top: 12px; }
  .explorer-floating-nav button, .explorer-floating-nav a { padding: 10px; font-size: 11px; }
- .explorer-floating-modes { top: 62px; left: 12px; transform: none; padding: 3px; gap: 2px; }
- .explorer-floating-modes button { padding: 6px 10px; font-size: 11px; }
  .explorer-floating-login { right: 12px; top: 12px; padding: 14px 12px; font-size: 10px; }
  .explorer-panel { top: auto; bottom: 0; left: 0; width: 100%; height: 50dvh; }
  .explorer-panel-inner { border-radius: 20px 20px 0 0; }
