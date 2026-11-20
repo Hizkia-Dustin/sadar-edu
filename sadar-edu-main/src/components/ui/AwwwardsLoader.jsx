@@ -4,14 +4,14 @@ import { gsap } from "gsap";
 import logo from "../../assets/figma/logo-sadar.svg";
 
 /**
- * EditorialIntro - Clean, Anti-Slop Signature Intro for SADAR EDU
+ * EditorialIntro - Anti-Slop, Clean Light Signature Intro for SADAR EDU
  *
- * Mengikuti standar design-taste-frontend & Impeccable:
- * - Tidak ada fake loading, persentase palsu, atau teks telemetri fiktif.
- * - Tipografi presisi dan berbobot tanpa ornamen neon/glow yang berlebihan.
- * - Muncul hanya pada kunjungan pertama ke landing page (session-persisted).
- * - Dapat dilewati seketika (Skip) via tombol atau tombol keyboard [Esc] / [Space] / [Enter].
- * - Transisi pembuka ke beranda berlangsung mulus dan cepat (~1.5s total).
+ * Mengikuti pedoman antislop-ui & identitas asli Sadar Edu:
+ * - Warna solid terang (tanpa gradient, tidak gelap): latar #F5F7F5 dan teks #173E50.
+ * - Tanpa dot dekoratif maupun aksen visual klise.
+ * - Tanpa fake loading, angka ticker palsu, atau progress bar.
+ * - Dapat dilewati kapan saja (klik di mana saja, tombol Lewati, atau tombol Esc / Space / Enter).
+ * - Hanya tampil 1x pada kunjungan pertama ke landing page (session-persisted).
  */
 export default function EditorialIntro({ onComplete }) {
   const containerRef = useRef(null);
@@ -41,7 +41,7 @@ export default function EditorialIntro({ onComplete }) {
     gsap.to(container, {
       opacity: 0,
       yPercent: -100,
-      duration: 0.35,
+      duration: 0.32,
       ease: "power3.inOut",
       onComplete: finish,
     });
@@ -51,7 +51,6 @@ export default function EditorialIntro({ onComplete }) {
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
-    // Aksesibilitas keyboard untuk skip instan
     const handleKey = (e) => {
       if (e.key === "Escape" || e.key === " " || e.key === "Enter") {
         e.preventDefault();
@@ -61,12 +60,11 @@ export default function EditorialIntro({ onComplete }) {
     window.addEventListener("keydown", handleKey);
 
     const ctx = gsap.context(() => {
-      // Timeline singkat, tegas, dan tenang
       const tl = gsap.timeline({
         onComplete: () => {
           gsap.to(containerRef.current, {
             yPercent: -100,
-            duration: 0.6,
+            duration: 0.55,
             ease: "power4.inOut",
             onComplete: finish,
           });
@@ -75,25 +73,24 @@ export default function EditorialIntro({ onComplete }) {
       timelineRef.current = tl;
 
       gsap.set(containerRef.current, { opacity: 1, yPercent: 0 });
-      gsap.set(contentRef.current, { opacity: 0, y: 16 });
-      gsap.set(".intro-skip", { opacity: 0 });
+      gsap.set(contentRef.current, { opacity: 0, y: 14 });
+      gsap.set(".intro-skip-btn", { opacity: 0 });
 
-      // Masuk secara tenang
       tl.to(contentRef.current, {
         opacity: 1,
         y: 0,
-        duration: 0.5,
+        duration: 0.45,
         ease: "power3.out",
       }, 0.05);
 
-      tl.to(".intro-skip", {
+      tl.to(".intro-skip-btn", {
         opacity: 1,
         duration: 0.3,
         ease: "power2.out",
-      }, 0.15);
+      }, 0.12);
 
-      // Jeda apresiasi identitas yang ringkas (~0.9s), tidak berlama-lama
-      tl.to({}, { duration: 0.9 });
+      // Jeda singkat (~0.85s) agar terbaca jelas sebelum otomatis mengangkat curtain
+      tl.to({}, { duration: 0.85 });
     }, containerRef);
 
     return () => {
@@ -110,15 +107,14 @@ export default function EditorialIntro({ onComplete }) {
       aria-modal="true"
       aria-label="Pengenalan SADAR EDU"
       onClick={skip}
-      className="fixed inset-0 z-[9999] flex flex-col justify-between p-8 sm:p-14 select-none bg-[#092B30] text-slate-100 font-sans cursor-pointer"
+      className="fixed inset-0 z-[9999] flex flex-col justify-between p-6 sm:p-12 md:p-16 select-none bg-[#F5F7F5] text-[#173E50] font-sans cursor-pointer border-b border-[#E7EEEA]"
       style={{ willChange: "transform, opacity" }}
     >
       {/* Top Header Bar */}
-      <header className="w-full max-w-6xl mx-auto flex items-center justify-between pointer-events-auto">
-        <div className="flex items-center gap-2.5 text-xs text-slate-300 font-medium tracking-wide">
-          <span className="w-2 h-2 rounded-full bg-[#34D399]" aria-hidden="true" />
-          <span>Dinas Pendidikan Kabupaten Bogor</span>
-        </div>
+      <header className="w-full max-w-5xl mx-auto flex items-center justify-between pointer-events-auto">
+        <span className="text-xs sm:text-sm font-semibold tracking-tight text-[#173E50]/80">
+          Dinas Pendidikan Kabupaten Bogor
+        </span>
 
         <button
           type="button"
@@ -126,45 +122,45 @@ export default function EditorialIntro({ onComplete }) {
             e.stopPropagation();
             skip();
           }}
-          className="intro-skip inline-flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium text-slate-200 bg-white/5 hover:bg-white/10 border border-white/15 hover:border-white/30 transition-colors cursor-pointer"
+          className="intro-skip-btn inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-[#173E50] bg-white hover:bg-[#E7EEEA] border border-[#CBD5E1] transition-colors cursor-pointer shadow-xs"
           aria-label="Lewati pengenalan dan buka beranda"
         >
           <span>Lewati</span>
-          <kbd className="font-mono text-[10px] px-1 py-0.5 rounded bg-black/40 text-slate-300">
+          <kbd className="font-mono text-[10px] px-1 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
             Esc
           </kbd>
-          <ArrowRight size={13} className="text-[#34D399]" aria-hidden="true" />
+          <ArrowRight size={13} className="text-[#1F6F5F]" aria-hidden="true" />
         </button>
       </header>
 
-      {/* Main Centered Brand Composition */}
+      {/* Main Brand Composition (Solid, Clean, Anti-Slop) */}
       <main
         ref={contentRef}
-        className="w-full max-w-2xl mx-auto my-auto flex flex-col items-center text-center px-4"
+        className="w-full max-w-xl mx-auto my-auto flex flex-col items-center text-center px-4"
       >
-        <div className="w-16 h-16 sm:w-20 sm:h-20 mb-6 flex items-center justify-center p-3 rounded-2xl bg-white/5 border border-white/10">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 mb-5 flex items-center justify-center p-2 rounded-2xl bg-white border border-[#E7EEEA] shadow-xs">
           <img
             src={logo}
             alt=""
-            width="80"
-            height="80"
+            width="64"
+            height="64"
             className="w-full h-full object-contain"
           />
         </div>
 
-        <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-white mb-4">
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-[#173E50] mb-3 leading-tight">
           SADAR EDU
         </h1>
 
-        <p className="text-base sm:text-lg text-slate-300 font-normal leading-relaxed max-w-xl">
+        <p className="text-sm sm:text-base text-slate-600 font-normal leading-relaxed max-w-md">
           Sistem Informasi Geografis & Analisis Kebutuhan Sekolah Menengah Pertama di Kabupaten Bogor.
         </p>
       </main>
 
       {/* Footer Info */}
-      <footer className="w-full max-w-6xl mx-auto flex items-center justify-between text-xs text-slate-400 border-t border-white/10 pt-4">
-        <span>Pemetaan Spasial & Perencanaan Berbasis Data</span>
-        <span className="hidden sm:inline">Tekan Esc atau klik untuk melanjutkan</span>
+      <footer className="w-full max-w-5xl mx-auto flex items-center justify-between text-xs text-slate-500 border-t border-[#E7EEEA] pt-4">
+        <span>Pemetaan Spasial Berbasis Data</span>
+        <span className="hidden sm:inline">Klik layar atau tekan Esc untuk langsung masuk</span>
       </footer>
     </div>
   );
