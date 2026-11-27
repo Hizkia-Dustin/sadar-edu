@@ -1,6 +1,6 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { GeoLoaderScreen, GeoMark } from './GeoLoader';
-import { DotText } from './DotMatrix';
+import logoSadar from '../../assets/figma/logo-sadar.svg';
 
 const ENTER_MS = 380;
 const LEAVE_MS = 540;
@@ -155,7 +155,15 @@ export default function GeoRouteBoundary({ location, children }) {
             onAnimationEnd={handleBrushAnimationEnd}
           />
           <div className="sadar-route-brand" data-visible={stage === 'holding' || stage === 'entering'}>
-            <span className="sadar-route-wordmark"><DotText text="SADAR EDU" /><span className="sr-only">SADAR EDU</span></span>
+            <div className="sadar-route-brand-inner">
+              <img src={logoSadar} alt="SADAR EDU" className="sadar-route-logo" />
+              <div className="sadar-route-text-block">
+                <span className="sadar-route-title">
+                  SADAR <span className="sadar-route-accent">EDU</span>
+                </span>
+                <span className="sadar-route-sub">WebGIS Kabupaten Bogor</span>
+              </div>
+            </div>
             {showSlowHint && (
               <span className="sadar-route-wait" role="status">
                 <GeoMark /> Memuat halaman…

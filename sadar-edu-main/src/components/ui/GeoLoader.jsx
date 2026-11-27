@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { DotPin, DotText } from './DotMatrix';
+import logoSadar from '../../assets/figma/logo-sadar.svg';
 import './geo-loader.css';
 
 export function GeoMark() {
@@ -7,7 +7,12 @@ export function GeoMark() {
 }
 
 export default function GeoLoader({ label = 'Memuat…', className = '' }) {
-  return <span className={`geo-loader ${className}`} role="status"><GeoMark />{label}</span>;
+  return (
+    <span className={`geo-loader ${className}`} role="status">
+      <GeoMark />
+      <span className="geo-loader-text">{label}</span>
+    </span>
+  );
 }
 
 const INTRO_MS = 1500;
@@ -15,28 +20,26 @@ const SCATTER_DELAY_MS = 180;
 const SCRAMBLE_MS = 620;
 const SCRAMBLE_CHARS = 'SADREUBOGPTIKLN0123456789';
 
-// Kata raksasa fase kedua; posisi dalam persen kartu (fakta nyata: 40 kecamatan di Kab. Bogor).
+// Kata-kata editorial fase kedua berakar pada tema spasial SADAR EDU Kab. Bogor
 const SCATTER_WORDS = [
-  { text: 'SADAR', x: 3, y: 22 },
-  { text: 'EDU', x: 12, y: 49 },
-  { text: '/PETA', x: 54, y: 7 },
-  { text: 'BOGOR', x: 50, y: 31 },
-  { text: 'SIG', x: 67, y: 56 },
-  { text: '40', x: 3, y: 76 },
-  { text: '2026', x: 35, y: 76 },
+  { text: 'SADAR EDU', sub: 'WebGIS Analisis Pendidikan', x: 4, y: 16 },
+  { text: 'KAB. BOGOR', sub: 'Wilayah Kajian 40 Kecamatan', x: 50, y: 16 },
+  { text: 'ZONASI SMP', sub: 'Analisis Blank Spot & Daya Tampung', x: 4, y: 46 },
+  { text: '918 SEKOLAH', sub: 'Sebaran SMP Negeri & Swasta', x: 50, y: 46 },
+  { text: 'SIMULASI USB', sub: 'Unit Sekolah Baru & RKB', x: 4, y: 74 },
+  { text: '2026', sub: 'Edisi Pemutakhiran Spasial', x: 50, y: 74 },
 ];
 
 function scramble(text, progress) {
   return text
     .split('')
     .map((ch, i) => {
-      if (ch === '/' || i / text.length < progress) return ch;
+      if (ch === ' ' || ch === '.' || ch === '&' || i / text.length < progress) return ch;
       return SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
     })
     .join('');
 }
 
-// Fase kata raksasa: huruf diacak lalu mengendap dari kiri ke kanan.
 function useScatterWords(active) {
   const [words, setWords] = useState(() => SCATTER_WORDS.map((w) => w.text));
   useEffect(() => {
@@ -46,14 +49,14 @@ function useScatterWords(active) {
       const progress = Math.min(1, (performance.now() - start) / SCRAMBLE_MS);
       setWords(SCATTER_WORDS.map((w) => scramble(w.text, progress)));
       if (progress >= 1) window.clearInterval(id);
-    }, 55);
+    }, 50);
     return () => window.clearInterval(id);
   }, [active]);
   return words;
 }
+
 const reducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-// Penghitung persen: intro naik ke 100 dalam waktu tetap; layar biasa mendekati 99 sampai halaman siap.
 function useLoadCounter(intro) {
   const [value, setValue] = useState(() => (reducedMotion() ? (intro ? 100 : 99) : 0));
   useEffect(() => {
@@ -80,7 +83,6 @@ export function GeoLoaderScreen({ label = 'Memuat halaman…', onSkip, leaving =
   const [scatter, setScatter] = useState(false);
   const words = useScatterWords(scatter);
 
-  // Setelah 100%, intro berganti ke kartu berbingkai dengan kata dot-matrix raksasa.
   useEffect(() => {
     if (!intro || value < 100 || scatter) return undefined;
     const id = window.setTimeout(() => setScatter(true), SCATTER_DELAY_MS);
@@ -92,49 +94,92 @@ export function GeoLoaderScreen({ label = 'Memuat halaman…', onSkip, leaving =
   }
 
   return (
-    <div className="geo-screen" data-intro={intro} data-phase={scatter ? 'scatter' : 'count'} data-leaving={leaving} onAnimationEnd={finishReveal}>
-      <span className="sr-only" role="status">{intro ? 'Pembuka SADAR EDU, Kelompok 2.' : label}</span>
+    <div
+      className="geo-screen"
+      data-intro={intro}
+      data-phase={scatter ? 'scatter' : 'count'}
+      data-leaving={leaving}
+      onAnimationEnd={finishReveal}
+    >
+      <span className="sr-only" role="status">
+        {intro ? 'Pembuka SADAR EDU, WebGIS Analisis Pendidikan Kabupaten Bogor.' : label}
+      </span>
 
       <div className="ld-card" aria-hidden="true">
-      {intro && (
-        <div className="ld-scatter">
-          <div className="ld-topbar">
-            <DotText text="SADAR·EDU" className="ld-tag" />
-            <span className="ld-topnav"><span>Peta</span><span>Sekolah</span><span>Analisis</span></span>
-            <span className="ld-badge"><i />Kelompok 2</span>
+        {intro && (
+          <div className="ld-scatter">
+            <div className="ld-topbar">
+              <div className="ld-brand-pill">
+                <img src={logoSadar} alt="" className="ld-logo-icon" />
+                <span className="ld-brand-name">
+                  SADAR <span className="ld-brand-accent">EDU</span>
+                </span>
+              </div>
+              <div className="ld-topnav">
+                <span>Peta Interaktif</span>
+                <span>Analisis Spasial</span>
+                <span>Simulasi Zonasi</span>
+              </div>
+              <span className="ld-badge">
+                <i />
+                Kelompok 2
+              </span>
+            </div>
+
+            <div className="ld-words-grid">
+              {SCATTER_WORDS.map((w, i) => (
+                <div key={w.text} className="ld-word-card" style={{ '--w': i }}>
+                  <span className="ld-word-title">{words[i]}</span>
+                  <span className="ld-word-sub">{w.sub}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          {SCATTER_WORDS.map((w, i) => (
-            <span key={w.text} className="ld-word" style={{ left: `${w.x}%`, top: `${w.y}%`, '--w': i }}>
-              <DotText text={words[i]} print />
-            </span>
-          ))}
-        </div>
-      )}
-      <div className="ld-board">
-        <p className="ld-label">
-          {intro ? 'Menyiapkan atlas pendidikan' : label.replace(/…$/, '')}
-          <span className="ld-ellipsis"><i>.</i><i>.</i><i>.</i></span>
-        </p>
+        )}
 
-        <div className="ld-counter">
-          <DotText text={`${String(value).padStart(3, '0')}%`} className="ld-digits" />
-          <div className="ld-meta">
-            <DotText text="SADAR·EDU" className="ld-tag" />
-            <span>Kab. Bogor · 2026</span>
+        <div className="ld-board">
+          <div className="ld-header-area">
+            <div className="ld-brand-pill">
+              <img src={logoSadar} alt="" className="ld-logo-icon" />
+              <span className="ld-brand-name">
+                SADAR <span className="ld-brand-accent">EDU</span>
+              </span>
+            </div>
+            <p className="ld-label">
+              {intro ? 'Menyiapkan atlas spasial pendidikan' : label.replace(/…$/, '')}
+              <span className="ld-ellipsis">
+                <i>.</i><i>.</i><i>.</i>
+              </span>
+            </p>
+          </div>
+
+          <div className="ld-counter">
+            <div className="ld-num-counter">
+              <span className="ld-num-val">{String(value).padStart(2, '0')}</span>
+              <span className="ld-num-pct">%</span>
+            </div>
+            <div className="ld-progress-track">
+              <div className="ld-progress-fill" style={{ width: `${value}%` }} />
+            </div>
+            <div className="ld-meta">
+              <span className="ld-meta-loc">Kabupaten Bogor</span>
+              <span className="ld-meta-dot">·</span>
+              <span className="ld-meta-year">2026</span>
+            </div>
           </div>
         </div>
-
-        <DotPin className="ld-pin" animated />
-      </div>
       </div>
 
       {intro && (
-        <>
-          <p className="ld-credit" aria-hidden="true">Kelompok <strong>2</strong></p>
+        <div className="ld-footer-bar">
+          <p className="ld-credit" aria-hidden="true">
+            WebGIS Pendidikan <span className="ld-credit-sep">·</span> <strong>Kelompok 2</strong>
+          </p>
           <button className="ld-skip" type="button" onClick={onSkip}>
-            Lewati intro <span aria-hidden="true">→</span>
+            <span>Lewati intro</span>
+            <span className="ld-skip-arrow" aria-hidden="true">→</span>
           </button>
-        </>
+        </div>
       )}
     </div>
   );
