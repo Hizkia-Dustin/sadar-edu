@@ -51,10 +51,9 @@ export default function GeoRouteBoundary({ location, children }) {
 
   const showOpening = opening.enabled && openingPhase !== 'done';
 
-  // Opening intro pada landing / intro pertama kali
-  // Intro: hitung 0-100%, lalu fase kata dot-matrix raksasa, kemudian slide up.
+  // Opening intro pada landing / intro pertama kali (minimalis, responsif, dan fokus aplikasi).
   const exitOpeningWhenReady = useCallback(() => {
-    const remaining = Math.max(0, 3700 - (performance.now() - opening.start));
+    const remaining = Math.max(0, 1300 - (performance.now() - opening.start));
     const timer = window.setTimeout(() => setOpeningPhase('leaving'), remaining);
     return () => window.clearTimeout(timer);
   }, [opening]);
@@ -63,7 +62,7 @@ export default function GeoRouteBoundary({ location, children }) {
     if (!opening.enabled || openingPhase === 'done') return;
     const preference = matchMedia('(prefers-reduced-motion: reduce)');
     const finish = () => setOpeningPhase('done');
-    const timeout = openingPhase === 'leaving' ? window.setTimeout(finish, 900) : undefined;
+    const timeout = openingPhase === 'leaving' ? window.setTimeout(finish, 450) : undefined;
     if (preference.matches) {
       const immediate = window.setTimeout(finish, 0);
       return () => {
@@ -124,9 +123,9 @@ export default function GeoRouteBoundary({ location, children }) {
 
   const handleBrushAnimationEnd = (event) => {
     if (event.target !== event.currentTarget) return;
-    if (stage === 'entering' && event.animationName === 'sadar-brush-in') {
+    if (stage === 'entering' && (event.animationName === 'sadar-route-in' || event.animationName === 'sadar-brush-in')) {
       commitSwap();
-    } else if (stage === 'leaving' && event.animationName === 'sadar-brush-out') {
+    } else if (stage === 'leaving' && (event.animationName === 'sadar-route-out' || event.animationName === 'sadar-brush-out')) {
       setStage('idle');
     }
   };
