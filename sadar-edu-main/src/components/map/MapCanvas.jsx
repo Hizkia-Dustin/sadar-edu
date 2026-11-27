@@ -31,7 +31,6 @@ const schoolLayerStyle = {
     "icon-allow-overlap": true,
     "icon-ignore-placement": true,
   },
-  },
 };
 
 const clusterCirclePaint = {
