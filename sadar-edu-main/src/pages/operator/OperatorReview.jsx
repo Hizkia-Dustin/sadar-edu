@@ -25,7 +25,7 @@ import {
   PageHeader,
   StatusPill,
   formatTimestamp,
-} from '../../components/operator/Ui';
+} from '../../components/operator/ui';
 
 const FULL_WIDTH = ['attribution', 'note'];
 

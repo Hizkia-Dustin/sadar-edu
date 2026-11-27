@@ -3,7 +3,7 @@ import { Check, ShieldCheck } from 'lucide-react';
 import { useOperatorStore } from '../../store/useOperatorStore';
 import { summarizePreview } from '../../lib/operatorImport';
 import OperatorIndicatorMap from '../../components/operator/OperatorIndicatorMap';
-import { BTN_OUTLINE, CARD, EMPTY, PageHeader, TD, TH } from '../../components/operator/Ui';
+import { BTN_OUTLINE, CARD, EMPTY, PageHeader, TD, TH } from '../../components/operator/ui';
 
 const DEFINITION = [
   { label: 'Nama field', value: 'latitude / longitude' },

@@ -34,7 +34,7 @@ import {
   StatusPill,
   TD,
   TH,
-} from '../../components/operator/Ui';
+} from '../../components/operator/ui';
 
 const STEPS = ['Unggah', 'Pemetaan', 'Validasi', 'Review'];
 

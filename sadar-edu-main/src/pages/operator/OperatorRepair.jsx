@@ -15,7 +15,7 @@ import {
   StatusPill,
   TD,
   TH,
-} from '../../components/operator/Ui';
+} from '../../components/operator/ui';
 
 const SHOWN_ROWS = 100;
 

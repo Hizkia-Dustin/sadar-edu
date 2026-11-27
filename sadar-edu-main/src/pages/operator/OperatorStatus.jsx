@@ -15,7 +15,7 @@ import {
   TD,
   TH,
   formatTimestamp,
-} from '../../components/operator/Ui';
+} from '../../components/operator/ui';
 
 const STEPS = ['Draf', 'Dikirim', 'Review Dinas', 'Selesai'];
 

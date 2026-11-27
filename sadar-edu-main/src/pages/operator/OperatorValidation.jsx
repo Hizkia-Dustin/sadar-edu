@@ -32,7 +32,7 @@ import {
   TD,
   TH,
   formatTimestamp,
-} from '../../components/operator/Ui';
+} from '../../components/operator/ui';
 
 // Aturan dan ketentuan tampil sejak awal; angka terdampak menyusul setelah validasi.
 const DEFAULT_FINDINGS = [

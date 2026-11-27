@@ -13,7 +13,7 @@ import {
   FOCUS,
   StatusPill,
   formatTimestamp,
-} from '../../components/operator/Ui';
+} from '../../components/operator/ui';
 
 const ALERTS = [
   {
