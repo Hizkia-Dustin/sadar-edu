@@ -51,9 +51,10 @@ export default function GeoRouteBoundary({ location, children }) {
 
   const showOpening = opening.enabled && openingPhase !== 'done';
 
-  // Opening intro pada landing / intro pertama kali (minimalis, responsif, dan fokus aplikasi).
+  // Opening intro pada landing / intro pertama kali:
+  // Hitung 0-100%, lalu fase kedua kartu berbingkai, kemudian slide up (sadar-brush-out).
   const exitOpeningWhenReady = useCallback(() => {
-    const remaining = Math.max(0, 1300 - (performance.now() - opening.start));
+    const remaining = Math.max(0, 3700 - (performance.now() - opening.start));
     const timer = window.setTimeout(() => setOpeningPhase('leaving'), remaining);
     return () => window.clearTimeout(timer);
   }, [opening]);
@@ -62,7 +63,7 @@ export default function GeoRouteBoundary({ location, children }) {
     if (!opening.enabled || openingPhase === 'done') return;
     const preference = matchMedia('(prefers-reduced-motion: reduce)');
     const finish = () => setOpeningPhase('done');
-    const timeout = openingPhase === 'leaving' ? window.setTimeout(finish, 450) : undefined;
+    const timeout = openingPhase === 'leaving' ? window.setTimeout(finish, 900) : undefined;
     if (preference.matches) {
       const immediate = window.setTimeout(finish, 0);
       return () => {
@@ -123,9 +124,9 @@ export default function GeoRouteBoundary({ location, children }) {
 
   const handleBrushAnimationEnd = (event) => {
     if (event.target !== event.currentTarget) return;
-    if (stage === 'entering' && (event.animationName === 'sadar-route-in' || event.animationName === 'sadar-brush-in')) {
+    if (stage === 'entering' && event.animationName === 'sadar-brush-in') {
       commitSwap();
-    } else if (stage === 'leaving' && (event.animationName === 'sadar-route-out' || event.animationName === 'sadar-brush-out')) {
+    } else if (stage === 'leaving' && event.animationName === 'sadar-brush-out') {
       setStage('idle');
     }
   };
@@ -154,14 +155,11 @@ export default function GeoRouteBoundary({ location, children }) {
             onAnimationEnd={handleBrushAnimationEnd}
           />
           <div className="sadar-route-brand" data-visible={stage === 'holding' || stage === 'entering'}>
-            <div className="sadar-route-brand-inner">
-              <img src={logoSadar} alt="SADAR EDU" className="sadar-route-logo" />
-              <div className="sadar-route-text-block">
-                <span className="sadar-route-title">
-                  SADAR <span className="sadar-route-accent">EDU</span>
-                </span>
-                <span className="sadar-route-sub">WebGIS Kabupaten Bogor</span>
-              </div>
+            <div className="sadar-route-wordmark">
+              <img src={logoSadar} alt="" className="sadar-route-logo" />
+              <span className="sadar-route-title">
+                SADAR <strong>EDU</strong>
+              </span>
             </div>
             {showSlowHint && (
               <span className="sadar-route-wait" role="status">

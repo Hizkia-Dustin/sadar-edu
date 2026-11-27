@@ -1,34 +1,32 @@
 /* ==========================================================================
-   SADAR EDU — Minimalist Application Loader, Opening Screen, & Route Transition
-   Identity: SADAR EDU (WebGIS Persebaran & Prioritas SMP Kabupaten Bogor)
-   Typography: 'Public Sans', system-ui, sans-serif
-   Palette: Forest Pine (#1F6F5F), Deep Slate (#0F172A), Slate Muted (#64748B)
-   Design Principle: Clean, minimalist, modern, no slop, no artificial noise
+   SADAR EDU — Geo Loader, 2-Phase Opening Screen, & Route Transition
+   Typography: 'Public Sans', system-ui, sans-serif (Coherent with main web)
+   Palette: Paper (#F8FAFC), Ink (#0F172A), Forest Pine (#1F6F5F), Muted (#64748B)
+   Choreography: Original 2-phase count -> inset card scatter -> brush-out lift
    ========================================================================== */
 
-/* ---------- Indikator Inline (Tombol, Form, Status) ---------- */
+/* ---------- Indikator kecil (tombol, panel) ---------- */
 .geo-loader,
 .sadar-route-wait {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5em;
+  gap: 0.55em;
   font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
-  font-weight: 500;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 .geo-loader {
   vertical-align: middle;
 }
 .geo-loader-text {
   font-size: 13px;
-  color: inherit;
+  font-weight: 500;
 }
 
-/* Indikator mini dua balok animasi */
+/* Indikator kecil mengikuti warna teks tombol */
 .geo-mark {
-  width: 0.9em;
-  height: 0.9em;
+  width: 1em;
+  height: 1em;
   display: inline-grid;
   flex: none;
   grid-template-rows: 1fr 1fr;
@@ -38,15 +36,15 @@
 .geo-mark::after {
   content: '';
   background: currentColor;
-  animation: sadar-mark 750ms ease-in-out infinite alternate;
+  animation: sadar-mark 780ms ease-in-out infinite alternate;
 }
 .geo-mark::before {
-  --travel: -20%;
-  border-radius: 3px 3px 0 0;
+  --travel: -18%;
+  border-radius: 1em 1em 0 0;
 }
 .geo-mark::after {
-  --travel: 20%;
-  border-radius: 0 0 3px 3px;
+  --travel: 18%;
+  border-radius: 0 0 1em 1em;
 }
 @keyframes sadar-mark {
   to {
@@ -54,239 +52,423 @@
   }
 }
 
-/* ---------- Layar Memuat Penuh (Opening & Loading Screen Minimalis) ---------- */
+/* ---------- Layar memuat: kanvas bersih, penghitung minimalis ---------- */
+.geo-screen,
+.sadar-route-brush-veil {
+  --ld-paper: #f8fafc;
+  --ld-ink: #0f172a;
+  --ld-muted: #64748b;
+  --ld-green: #1f6f5f;
+  --ld-line: #e2e8f0;
+  background: var(--ld-paper);
+}
+
 .geo-screen {
   position: fixed;
   inset: 0;
   z-index: 10000;
   isolation: isolate;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: #f8fafc;
-  color: #0f172a;
-  font-family: 'Public Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  letter-spacing: -0.01em;
   overflow: hidden;
+  color: var(--ld-ink);
+  font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
 }
 
-/* Wadah Minimalis Terpusat */
-.ld-minimal-box {
-  width: 100%;
-  max-width: 440px;
+/* ---------- Fase 1: Komposisi asimetris (label kiri atas, angka kanan, pin kiri bawah) ---------- */
+.ld-board {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto 1fr;
+  column-gap: 32px;
+  padding: clamp(28px, 12vh, 140px) clamp(24px, 5vw, 72px) 96px;
+  transition: opacity 240ms ease;
+}
+
+.ld-label {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: start;
+  margin: 10px 0 0;
+  font-family: 'Public Sans', system-ui, sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ld-green);
+}
+
+.ld-ellipsis i {
+  font-style: normal;
+  animation: ld-blink 1.2s steps(1) infinite;
+}
+.ld-ellipsis i:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.ld-ellipsis i:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.ld-counter {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  justify-self: end;
+  display: grid;
+  gap: 12px;
+  min-width: clamp(200px, 22vw, 320px);
+}
+
+.ld-digits {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 28px;
-  animation: sadar-fade-in 340ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-/* Identitas Brand Aplikasi */
-.ld-minimal-identity {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 14px;
-}
-
-.ld-minimal-logo-wrap {
-  width: 52px;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 14px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05);
-}
-
-.ld-minimal-logo {
-  width: 30px;
-  height: 30px;
-  object-fit: contain;
-}
-
-.ld-minimal-meta-text {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  align-items: baseline;
+  justify-content: flex-end;
   gap: 4px;
-}
-
-.ld-minimal-title {
-  margin: 0;
-  font-family: 'Public Sans', system-ui, sans-serif;
-  font-size: 22px;
+  font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
+  font-size: clamp(3.75rem, 8.5vw, 6.75rem);
   font-weight: 800;
-  letter-spacing: -0.03em;
-  color: #0f172a;
-  line-height: 1.15;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  color: var(--ld-ink);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
 }
 
-.ld-minimal-accent {
-  color: #1f6f5f;
+.ld-digits small {
+  font-size: 0.36em;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ld-green);
 }
 
-.ld-minimal-sub {
-  margin: 0;
-  font-family: 'Public Sans', system-ui, sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: #64748b;
-  line-height: 1.4;
-  max-width: 320px;
-}
-
-/* Meter Progres & Status Minimalis */
-.ld-minimal-meter {
+.ld-progress-line {
   width: 100%;
-  max-width: 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.ld-progress-track {
-  width: 100%;
-  height: 3px;
+  height: 2px;
+  background: var(--ld-line);
   border-radius: 999px;
-  background: #e2e8f0;
   overflow: hidden;
 }
 
 .ld-progress-fill {
   height: 100%;
+  background: var(--ld-green);
   border-radius: 999px;
-  background: #1f6f5f;
-  transition: width 100ms cubic-bezier(0.1, 0.9, 0.2, 1);
+  transition: width 90ms linear;
 }
 
-.ld-minimal-row {
+.ld-meta {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
   font-family: 'Public Sans', system-ui, sans-serif;
   font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ld-muted);
 }
 
-.ld-minimal-status {
-  font-weight: 550;
-  color: #64748b;
+.ld-tag {
+  color: var(--ld-green);
+  font-weight: 700;
+}
+
+/* Emblem spasial minimalis di kiri bawah */
+.ld-pin {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: start;
+  margin-top: clamp(40px, 10vh, 110px);
+  position: relative;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+}
+
+.ld-pin-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  border: 1px solid rgba(31, 111, 95, 0.22);
+  animation: ld-pulse 2.2s ease-in-out infinite;
+}
+
+.ld-pin-core {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  background: #ffffff;
+  border: 1px solid var(--ld-line);
+  box-shadow: 0 6px 18px -6px rgba(15, 23, 42, 0.08);
+  display: grid;
+  place-items: center;
+}
+
+.ld-pin-logo {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+/* Footer kredit aplikasi & tombol lewati */
+.ld-credit,
+.ld-skip {
+  position: absolute;
+  bottom: max(env(safe-area-inset-bottom), clamp(18px, 4vh, 44px));
+  min-height: 42px;
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  font-family: 'Public Sans', system-ui, sans-serif;
+  font-size: 12.5px;
+  color: var(--ld-muted);
 }
 
-.ld-minimal-dots i {
-  font-style: normal;
-  animation: ld-blink 1.2s steps(1) infinite;
-}
-.ld-minimal-dots i:nth-child(2) {
-  animation-delay: 0.2s;
-}
-.ld-minimal-dots i:nth-child(3) {
-  animation-delay: 0.4s;
+.ld-credit {
+  left: max(env(safe-area-inset-left), clamp(24px, 5vw, 72px));
+  gap: 6px;
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.ld-minimal-counter {
+.ld-credit strong {
+  font-size: 14px;
   font-weight: 700;
-  color: #1f6f5f;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum';
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--ld-ink);
+}
+
+.ld-skip {
+  right: max(env(safe-area-inset-right), clamp(24px, 5vw, 72px));
+  gap: 8px;
+  padding: 0 18px;
+  border: 1px solid var(--ld-line);
+  border-radius: 999px;
+  background: #ffffff;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ld-ink);
+  box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.05);
+  transition: border-color 160ms ease, background-color 160ms ease, color 160ms ease;
+}
+
+.ld-skip:hover {
+  border-color: rgba(31, 111, 95, 0.35);
+  background: #f0fdf4;
+  color: var(--ld-green);
+}
+
+.ld-skip:focus-visible {
+  outline: 2px solid var(--ld-green);
+  outline-offset: 3px;
+}
+
+.ld-skip span {
+  transition: transform 160ms ease-out;
+}
+
+.ld-skip:hover span {
+  transform: translateX(3px);
+}
+
+/* Keluar: lembar terangkat ke atas (animasi asli sadar-brush-out) */
+.geo-screen[data-leaving="true"] {
+  animation: sadar-brush-out 760ms cubic-bezier(0.76, 0, 0.24, 1) both;
+}
+.geo-screen[data-leaving="true"] .ld-skip {
+  opacity: 0;
+}
+
+/* ---------- Fase 2: Kartu berbingkai + Tipografi Spasial Minimalis ---------- */
+.geo-screen[data-intro="true"] {
+  background: var(--ld-green);
+}
+
+.ld-card {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--ld-paper);
+  transition:
+    inset 560ms cubic-bezier(0.76, 0, 0.24, 1),
+    border-radius 560ms cubic-bezier(0.76, 0, 0.24, 1),
+    box-shadow 560ms ease;
+}
+
+.geo-screen[data-phase="scatter"] .ld-card {
+  inset: clamp(10px, 1.6vw, 22px);
+  border-radius: clamp(16px, 1.6vw, 24px);
+  box-shadow: 0 30px 80px -30px rgba(15, 23, 42, 0.4);
+}
+
+.geo-screen[data-phase="scatter"] .ld-board {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.geo-screen[data-phase="scatter"] .ld-credit {
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.ld-scatter {
+  display: none;
+  position: absolute;
+  inset: 0;
+}
+
+.geo-screen[data-phase="scatter"] .ld-scatter {
+  display: block;
+}
+
+.ld-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 16px clamp(18px, 2.5vw, 32px);
+  font-family: 'Public Sans', system-ui, sans-serif;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ld-muted);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.7);
+  animation: ld-fade-in 300ms ease 220ms both;
+}
+
+.ld-brand-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ld-ink);
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
-/* Tag Lokasi & Status Bawah */
-.ld-minimal-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: 'Public Sans', system-ui, sans-serif;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: #94a3b8;
+.ld-brand-inline strong {
+  color: var(--ld-green);
+  font-weight: 800;
 }
 
-.ld-tag-sep {
-  color: #cbd5e1;
+.ld-brand-logo {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
 }
 
-/* Tombol Lewati Minimalis (Pojok Kanan Atas) */
-.ld-skip-minimal {
-  position: absolute;
-  top: 24px;
-  right: 28px;
+.ld-topnav {
+  display: flex;
+  gap: 22px;
+  margin-left: auto;
+}
+
+.ld-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
+  gap: 7px;
+  padding: 6px 12px;
   border-radius: 999px;
-  background: transparent;
-  border: 1px solid transparent;
-  cursor: pointer;
-  font-family: 'Public Sans', system-ui, sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
-  transition: all 160ms ease;
-}
-.ld-skip-minimal:hover {
   background: #ffffff;
-  border-color: #e2e8f0;
-  color: #0f172a;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+  border: 1px solid var(--ld-line);
+  color: var(--ld-ink);
+  font-weight: 700;
+  box-shadow: 0 2px 8px -3px rgba(15, 23, 42, 0.06);
 }
-.ld-skip-minimal:focus-visible {
-  outline: 2px solid #1f6f5f;
-  outline-offset: 2px;
+
+.ld-badge i {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--ld-green);
 }
-.ld-skip-arr {
+
+/* Kata tipografi minimalis tersebar di kanvas */
+.ld-word {
+  position: absolute;
+  user-select: none;
+}
+
+.ld-word-glyph {
   display: inline-block;
-  transition: transform 140ms ease;
-}
-.ld-skip-minimal:hover .ld-skip-arr {
-  transform: translateX(2px);
-}
-
-/* Animasi Keluar Bersih */
-.geo-screen[data-leaving="true"] {
-  animation: sadar-fade-leave 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
-@keyframes sadar-fade-leave {
-  from {
-    opacity: 1;
-    transform: none;
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-8px);
-  }
+  font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
+  font-size: clamp(2.25rem, 6.4vw, 5.5rem);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  color: var(--ld-ink);
+  font-variant-numeric: tabular-nums;
+  animation: ld-print 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--w) * 65ms + 90ms);
 }
 
-@keyframes sadar-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
+.ld-word[data-tone="green"] .ld-word-glyph {
+  color: var(--ld-green);
+}
+
+.ld-word[data-tone="muted"] .ld-word-glyph {
+  color: #94a3b8;
+  font-weight: 700;
+}
+
+@media (max-width: 720px), (max-aspect-ratio: 4/5) {
+  .ld-scatter {
+    padding: 76px 24px 90px;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2.8vh;
   }
-  to {
-    opacity: 1;
-    transform: none;
+  .geo-screen[data-phase="scatter"] .ld-scatter {
+    display: flex;
+  }
+  .ld-word {
+    position: static;
+  }
+  .ld-word:nth-child(even) {
+    margin-left: 12%;
+  }
+  .ld-word-glyph {
+    font-size: clamp(2rem, 10vw, 3.25rem);
+  }
+  .ld-topnav {
+    display: none;
+  }
+  .ld-topbar {
+    justify-content: space-between;
   }
 }
 
-@keyframes ld-blink {
-  50% {
-    opacity: 0;
+@media (max-width: 720px) {
+  .ld-board {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto 1fr;
+    row-gap: 24px;
+    padding-top: 16vh;
+  }
+  .ld-counter {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+  }
+  .ld-digits {
+    justify-content: flex-start;
+    font-size: clamp(3.25rem, 15vw, 4.75rem);
+  }
+  .ld-pin {
+    grid-row: 3;
+    margin-top: 12px;
   }
 }
 
-/* ---------- Transisi Antarhalaman (Route Transition) ---------- */
+/* ---------- Transisi antarhalaman: lembar atlas naik, lalu terangkat ---------- */
 .sadar-route-transition {
   position: fixed;
   inset: 0;
@@ -295,8 +477,8 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  color: #0f172a;
-  font-family: 'Public Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ld-ink);
+  font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
 }
 
 .sadar-route-transition[data-stage="entering"],
@@ -308,29 +490,27 @@
   position: absolute;
   inset: 0;
   will-change: transform;
-  background: #f8fafc;
-  box-shadow: 0 0 40px rgba(15, 23, 42, 0.05);
 }
+
 .sadar-route-brush-veil[data-stage="entering"] {
-  animation: sadar-route-in 280ms cubic-bezier(0.76, 0, 0.24, 1) both;
+  animation: sadar-brush-in 380ms cubic-bezier(0.76, 0, 0.24, 1) both;
 }
 .sadar-route-brush-veil[data-stage="holding"] {
   transform: none;
 }
 .sadar-route-brush-veil[data-stage="leaving"] {
-  animation: sadar-route-out 320ms cubic-bezier(0.76, 0, 0.24, 1) both;
+  animation: sadar-brush-out 540ms cubic-bezier(0.76, 0, 0.24, 1) both;
 }
 
 .sadar-route-brand {
   position: relative;
   z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  display: grid;
+  justify-items: center;
   gap: 12px;
   opacity: 0;
   transform: translateY(6px);
-  transition: opacity 160ms ease, transform 180ms ease;
+  transition: opacity 180ms ease, transform 220ms ease;
 }
 
 .sadar-route-brand[data-visible="true"] {
@@ -338,61 +518,43 @@
   transform: translateY(0);
 }
 
-.sadar-route-brand-inner {
+.sadar-route-wordmark {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 18px 8px 12px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06);
 }
 
 .sadar-route-logo {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   object-fit: contain;
 }
 
-.sadar-route-text-block {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.15;
-}
-
 .sadar-route-title {
-  font-family: 'Public Sans', system-ui, sans-serif;
-  font-size: 14px;
+  font-family: 'Public Sans', system-ui, -apple-system, sans-serif;
+  font-size: clamp(1.35rem, 2.2vw, 1.75rem);
   font-weight: 800;
-  letter-spacing: -0.02em;
-  color: #0f172a;
+  letter-spacing: -0.03em;
+  color: var(--ld-ink);
 }
 
-.sadar-route-accent {
-  color: #1f6f5f;
-}
-
-.sadar-route-sub {
-  font-family: 'Public Sans', system-ui, sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #64748b;
+.sadar-route-title strong {
+  color: var(--ld-green);
+  font-weight: 800;
 }
 
 .sadar-route-wait {
-  font-family: 'Public Sans', system-ui, sans-serif;
-  font-size: 12px;
-  font-weight: 600;
-  color: #64748b;
-}
-.sadar-route-wait .geo-mark {
-  color: #1f6f5f;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ld-muted);
 }
 
-@keyframes sadar-route-in {
+.sadar-route-wait .geo-mark {
+  color: var(--ld-green);
+}
+
+/* ---------- Keyframes ---------- */
+@keyframes sadar-brush-in {
   from {
     transform: translateY(100%);
   }
@@ -401,7 +563,7 @@
   }
 }
 
-@keyframes sadar-route-out {
+@keyframes sadar-brush-out {
   from {
     transform: none;
   }
@@ -410,7 +572,41 @@
   }
 }
 
-/* Reduced Motion */
+@keyframes ld-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes ld-print {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ld-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes ld-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.3;
+  }
+}
+
+/* Tanpa gerak: tampilkan keadaan akhir langsung */
 @media (prefers-reduced-motion: reduce) {
   .sadar-route-transition {
     display: none;
@@ -425,7 +621,17 @@
     animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
   }
+  .ld-pin-ring,
+  .ld-ellipsis i {
+    animation: none !important;
+  }
+  .ld-card {
+    transition: none;
+  }
   .geo-screen[data-leaving="true"] {
     animation-duration: 1ms;
+  }
+  .ld-skip span {
+    transition: none;
   }
 }
