@@ -1,3 +1,4 @@
+import GeoLoader from '../ui/GeoLoader';
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../../lib/api";
 import { fmt } from "../../lib/analysis";
@@ -161,7 +162,7 @@ export default function DatasetTab({ onChanged }) {
           <input id="fl" ref={fileRef} type="file" accept=".geojson,.json,.csv,.txt" onChange={onFile} className="block w-full text-xs text-slate-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-emerald-50 file:text-[#1F6F5F] file:font-semibold" />
         </div>
         <ErrorBox message={error} onClose={() => setError("")} />
-        <button className={btnPrimary + " w-full"} disabled={uploading || !file}>{uploading ? "Mengunggah & memproses..." : "Unggah & impor"}</button>
+        <button className={btnPrimary + " w-full"} disabled={uploading || !file}>{uploading ? <GeoLoader label="Mengunggah dan memproses…" /> : "Unggah & impor"}</button>
 
         {hasil && (
           <div className="text-xs bg-emerald-50 border border-emerald-200 rounded-lg p-3 space-y-1" role="status">

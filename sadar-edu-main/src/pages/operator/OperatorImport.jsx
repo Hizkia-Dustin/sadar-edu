@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ============================================================================
  * HALAMAN: Impor & Pemetaan Kolom Dataset (Operator)
  * ============================================================================
@@ -11,6 +11,7 @@
  * ============================================================================
  */
 
+import GeoLoader, { GeoMark } from '../../components/ui/GeoLoader';
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check, Sparkles, Upload } from 'lucide-react';
@@ -33,7 +34,7 @@ import {
   StatusPill,
   TD,
   TH,
-} from '../../components/operator/ui';
+} from '../../components/operator/Ui';
 
 const STEPS = ['Unggah', 'Pemetaan', 'Validasi', 'Review'];
 
@@ -44,9 +45,9 @@ const stepState = (index, hasFile) => {
 };
 
 const STEP_STYLE = {
-  done: { card: 'bg-white', circle: 'bg-[#2d8272] text-white', label: 'text-[#173042]' },
-  current: { card: 'bg-[#e8f3f0]', circle: 'bg-[#1b4965] text-white', label: 'text-[#1b4965]' },
-  todo: { card: 'bg-white', circle: 'bg-[#edf3f6] text-[#445665]', label: 'text-[#173042]' },
+  done: { card: 'bg-white', circle: 'bg-[#2d8272] text-white', label: 'text-[#132a25]' },
+  current: { card: 'bg-[#e8f3f0]', circle: 'bg-[#145646] text-white', label: 'text-[#145646]' },
+  todo: { card: 'bg-white', circle: 'bg-[#eef4f0] text-[#52605a]', label: 'text-[#132a25]' },
 };
 
 export default function OperatorImport() {
@@ -283,7 +284,7 @@ export default function OperatorImport() {
             <li
               key={label}
               aria-current={state === 'current' ? 'step' : undefined}
-              className={`flex h-[62px] items-center gap-3 rounded-lg border border-[#d7e1e8] px-[11px] ${style.card}`}
+              className={`flex h-[62px] items-center gap-3 rounded-lg border border-[#dde6e0] px-[11px] ${style.card}`}
             >
               <span
                 aria-hidden="true"
@@ -311,13 +312,13 @@ export default function OperatorImport() {
             }}
             onDragLeave={() => setDragging(false)}
             onDrop={handleDrop}
-            className={`mt-5 flex h-[150px] flex-col items-center justify-center rounded-lg border bg-[#edf3f6] text-center transition-colors ${
-              dragging ? 'border-[#1b4965] bg-[#e1eaee]' : 'border-[#d7e1e8]'
+            className={`mt-5 flex h-[150px] flex-col items-center justify-center rounded-lg border bg-[#eef4f0] text-center transition-colors ${
+              dragging ? 'border-[#145646] bg-[#e3ece6]' : 'border-[#dde6e0]'
             }`}
           >
-            <Upload size={34} aria-hidden="true" className="text-[#1b4965]" />
+            <Upload size={34} aria-hidden="true" className="text-[#145646]" />
             <p className="mt-3 text-sm font-semibold leading-5">Tarik berkas ke sini</p>
-            <p className="mt-1 text-[11px] font-medium leading-4 text-[#445665]">CSV, XLSX, atau GeoJSON (.json)</p>
+            <p className="mt-1 text-[11px] font-medium leading-4 text-[#52605a]">CSV, XLSX, atau GeoJSON (.json)</p>
           </div>
 
           <div className="mt-4 flex justify-center">
@@ -342,23 +343,23 @@ export default function OperatorImport() {
             </button>
           </div>
 
-          <div className="mt-5 border-t border-[#d7e1e8] pt-5">
-            <p className="text-[11px] font-medium leading-4 text-[#445665]">Status berkas</p>
+          <div className="mt-5 border-t border-[#dde6e0] pt-5">
+            <p className="text-[11px] font-medium leading-4 text-[#52605a]">Status berkas</p>
             <p aria-live="polite" className="mt-2 break-words text-sm font-semibold leading-5">
-              {reading ? 'Membaca berkas...' : hasFile ? file.fileName : 'Belum ada berkas dipilih'}
+              {reading ? <GeoLoader label="Membaca berkas…" /> : hasFile ? file.fileName : 'Belum ada berkas dipilih'}
             </p>
             {hasFile && (
-              <p className="mt-1 text-[11px] font-medium leading-4 text-[#445665]">
+              <p className="mt-1 text-[11px] font-medium leading-4 text-[#52605a]">
                 {file.rows.length} baris, {file.headers.length} kolom, {formatFileSize(file.fileSize)}
               </p>
             )}
             {error && (
               <p role="alert" className="mt-2 text-xs leading-[18px] text-[#a12b31]">{error}</p>
             )}
-            <p className="mt-3 text-[11px] font-medium leading-4 text-[#445665]">
+            <p className="mt-3 text-[11px] font-medium leading-4 text-[#52605a]">
               Ukuran maksimum dan aturan format mengikuti kebijakan integrasi.
             </p>
-            <p className="mt-2 text-[11px] font-medium leading-4 text-[#445665]">
+            <p className="mt-2 text-[11px] font-medium leading-4 text-[#52605a]">
               Untuk XLSX, hanya lembar pertama yang dibaca. Format kolom NPSN sebagai Teks agar nol di depan
               tidak hilang.
             </p>
@@ -370,24 +371,24 @@ export default function OperatorImport() {
 
         <section aria-labelledby="judul-pemetaan" className={`${CARD} min-w-0 p-[17px]`}>
           <h2 id="judul-pemetaan" className="text-base font-semibold leading-6">Pemetaan kolom</h2>
-          <p className="text-xs leading-[18px] text-[#445665]">
+          <p className="text-xs leading-[18px] text-[#52605a]">
             {isWilayah
               ? 'Berkas poligon batas wilayah terdeteksi (GeoJSON MultiPolygon). Atribut kecamatan otomatis terpetakan.'
               : 'Kolom wajib harus dipetakan sebelum validasi.'}
           </p>
 
           {isWilayah ? (
-            <div className="mt-5 rounded-lg border border-[#c4e0d7] bg-[#f4f9f7] p-4 text-xs leading-5 text-[#1b4965]">
+            <div className="mt-5 rounded-lg border border-[#c4e0d7] bg-[#f4f9f7] p-4 text-xs leading-5 text-[#145646]">
               <p className="font-semibold text-[#126552]">Fitur Batas Wilayah Kecamatan Terdeteksi ({file?.rows?.length || 0} Wilayah)</p>
               <p className="mt-1">
                 Poligon spasial otomatis dikonversi ke sistem koordinat WGS84 (PostGIS). Bidang atribut yang teridentifikasi:
               </p>
               <ul className="mt-2 list-inside list-disc space-y-1 text-[#2d5061]">
                 {file?.headers?.map((h, i) => (
-                  <li key={i}><span className="font-medium text-[#173042]">{h}</span></li>
+                  <li key={i}><span className="font-medium text-[#132a25]">{h}</span></li>
                 ))}
               </ul>
-              <p className="mt-3 text-[11px] text-[#445665]">
+              <p className="mt-3 text-[11px] text-[#52605a]">
                 Klik &quot;Impor Cepat (1-Klik ke DB)&quot; di bawah untuk langsung memperbarui batas kecamatan dan mengaitkan sekolah-sekolah di dalamnya secara otomatis.
               </p>
             </div>
@@ -419,7 +420,7 @@ export default function OperatorImport() {
                             setMapping({ ...mapping, [field.key]: e.target.value });
                             setDraftSaved(false);
                           }}
-                          className={`h-9 w-full max-w-[240px] cursor-pointer rounded-lg border border-[#d7e1e8] bg-white px-2 text-xs text-[#173042] disabled:cursor-not-allowed disabled:bg-[#f9fafb] disabled:text-[#445665] ${FOCUS}`}
+                          className={`h-9 w-full max-w-[240px] cursor-pointer rounded-lg border border-[#dde6e0] bg-white px-2 text-xs text-[#132a25] disabled:cursor-not-allowed disabled:bg-[#f7faf8] disabled:text-[#52605a] ${FOCUS}`}
                         >
                           <option value="">Pilih kolom</option>
                           {hasFile &&
@@ -430,7 +431,7 @@ export default function OperatorImport() {
                             ))}
                         </select>
                       </td>
-                      <td className={`${TD} text-[#445665]`}>{field.rule}</td>
+                      <td className={`${TD} text-[#52605a]`}>{field.rule}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -441,7 +442,7 @@ export default function OperatorImport() {
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <p id="catatan-validasi" className="text-xs leading-[18px] text-[#445665]">
+        <p id="catatan-validasi" className="text-xs leading-[18px] text-[#52605a]">
           {hasFile && file.rows.length === 0
             ? 'Berkas tidak berisi baris data, jadi belum bisa divalidasi.'
             : 'Validasi aktif setelah berkas dan seluruh kolom wajib dipilih.'}
@@ -453,7 +454,7 @@ export default function OperatorImport() {
             disabled={!ready || isQuickImporting}
             className={`${BTN_PRIMARY} flex items-center gap-2 bg-[#126552] hover:bg-[#0e5041] disabled:cursor-not-allowed disabled:opacity-50`}
           >
-            <Sparkles size={16} />
+            {isQuickImporting ? <GeoMark /> : <Sparkles size={16} />}
             {isQuickImporting ? 'Memvalidasi & Menyimpan...' : 'Impor Cepat (1-Klik ke DB)'}
           </button>
           <button

@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileText, MapPin, Search, TriangleAlert } from 'lucide-react';
 import { useOperatorStore } from '../../store/useOperatorStore';
@@ -10,11 +10,12 @@ import {
   CARD,
   EMPTY,
   FOCUS,
+  EmptyState,
   PageHeader,
   StatusPill,
   TD,
   TH,
-} from '../../components/operator/ui';
+} from '../../components/operator/Ui';
 
 const SHOWN_ROWS = 100;
 
@@ -27,14 +28,14 @@ const ERROR_LABEL = {
 
 const STATUS_TONE = {
   'Belum ditinjau': 'text-[#85520c]',
-  Diusulkan: 'text-[#2c6e8e]',
+  Diusulkan: 'text-[#0f766e]',
   Diterapkan: 'text-[#126552]',
 };
 
 // Baris contoh saat belum ada hasil validasi (mengikuti desain).
 const PLACEHOLDER_ROWS = Object.values(ERROR_LABEL);
 
-const editorField = `h-[42px] w-full rounded-md border border-[#d7e1e8] bg-[#edf3f6] px-[11px] text-xs text-[#173042] placeholder:text-[#445665] enabled:bg-white disabled:cursor-not-allowed read-only:cursor-default ${FOCUS}`;
+const editorField = `h-[42px] w-full rounded-md border border-[#dde6e0] bg-[#eef4f0] px-[11px] text-xs text-[#132a25] placeholder:text-[#52605a] enabled:bg-white disabled:cursor-not-allowed read-only:cursor-default ${FOCUS}`;
 
 export default function OperatorRepair() {
   const navigate = useNavigate();
@@ -166,7 +167,7 @@ export default function OperatorRepair() {
               <Search
                 size={17}
                 aria-hidden="true"
-                className="pointer-events-none absolute left-[11px] top-1/2 -translate-y-1/2 text-[#445665]"
+                className="pointer-events-none absolute left-[11px] top-1/2 -translate-y-1/2 text-[#52605a]"
               />
               <input
                 id="cari-error"
@@ -175,7 +176,7 @@ export default function OperatorRepair() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 disabled={!validation}
-                className={`h-10 w-full rounded-lg border border-[#d7e1e8] bg-[#f9fafb] pl-[39px] pr-3 text-xs placeholder:text-[#445665] disabled:cursor-not-allowed ${FOCUS}`}
+                className={`h-10 w-full rounded-lg border border-[#dde6e0] bg-[#f7faf8] pl-[39px] pr-3 text-xs placeholder:text-[#52605a] disabled:cursor-not-allowed ${FOCUS}`}
               />
             </div>
             <div>
@@ -185,7 +186,7 @@ export default function OperatorRepair() {
                 value={typeFilter}
                 onChange={(e) => setTypeFilter(e.target.value)}
                 disabled={!validation}
-                className={`h-[42px] cursor-pointer rounded-lg border border-[#d7e1e8] bg-white px-3 text-sm font-semibold text-[#173042] disabled:cursor-not-allowed ${FOCUS}`}
+                className={`h-[42px] cursor-pointer rounded-lg border border-[#dde6e0] bg-white px-3 text-sm font-semibold text-[#132a25] disabled:cursor-not-allowed ${FOCUS}`}
               >
                 <option value="">Filter: semua</option>
                 {PLACEHOLDER_ROWS.map((label) => (
@@ -217,7 +218,7 @@ export default function OperatorRepair() {
                     <tr key={label}>
                       <td className={TD}>{EMPTY}</td>
                       <td className={`${TD} text-sm font-semibold`}>{label}</td>
-                      <td className={`${TD} text-[#445665]`}>Belum tersedia</td>
+                      <td className={`${TD} text-[#52605a]`}>Belum tersedia</td>
                       <td className={`${TD} text-[#85520c]`}>Belum ditinjau</td>
                     </tr>
                   ))}
@@ -234,12 +235,12 @@ export default function OperatorRepair() {
                             onClick={() => handleSelect(item)}
                             aria-pressed={isSelected}
                             aria-label={`Pilih temuan baris ${item.line}: ${ERROR_LABEL[item.rule]}`}
-                            className={`cursor-pointer rounded text-left text-sm font-semibold text-[#173042] underline-offset-2 hover:underline ${FOCUS}`}
+                            className={`cursor-pointer rounded text-left text-sm font-semibold text-[#132a25] underline-offset-2 hover:underline ${FOCUS}`}
                           >
                             {ERROR_LABEL[item.rule]}
                           </button>
                         </td>
-                        <td className={`${TD} break-all text-[#445665]`}>
+                        <td className={`${TD} break-all text-[#52605a]`}>
                           {item.value === '' ? '(kosong)' : item.value}
                         </td>
                         <td className={`${TD} ${STATUS_TONE[status]}`}>{status}</td>
@@ -250,41 +251,43 @@ export default function OperatorRepair() {
             </table>
 
             {validation && errors.length === 0 && (
-              <p className="px-3 py-6 text-center text-xs text-[#445665]">
+              <p className="px-3 py-6 text-center text-xs text-[#52605a]">
                 Tidak ada error pada validasi terakhir.
               </p>
             )}
             {validation && errors.length > 0 && filtered.length === 0 && (
-              <p className="px-3 py-6 text-center text-xs text-[#445665]">
+              <p className="px-3 py-6 text-center text-xs text-[#52605a]">
                 Tidak ada temuan yang cocok dengan pencarian atau filter ini.
               </p>
             )}
           </div>
 
           {validation && filtered.length > SHOWN_ROWS && (
-            <p className="mt-2 text-xs text-[#445665]">
+            <p className="mt-2 text-xs text-[#52605a]">
               Menampilkan {SHOWN_ROWS} dari {filtered.length} temuan. Persempit dengan pencarian atau filter.
             </p>
           )}
 
           {!validation && (
-            <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg bg-[#edf3f6] p-4">
-              <p className="min-w-[200px] flex-1 text-xs leading-[18px] text-[#445665]">
-                Belum ada hasil validasi. Jalankan validasi dulu, lalu temuannya muncul di sini.
-              </p>
+            <EmptyState
+              art="validation"
+              className="mt-4"
+              title="Belum ada hasil validasi"
+              text="Jalankan validasi dulu, lalu temuannya muncul di sini."
+            >
               <button type="button" onClick={() => navigate('/operator/validasi')} className={BTN_PRIMARY}>
                 Ke halaman validasi
               </button>
-            </div>
+            </EmptyState>
           )}
 
-          <div className="mt-4 flex items-start gap-3 rounded-lg border border-[#d7e1e8] bg-[#fff5e3] p-4">
+          <div className="mt-4 flex items-start gap-3 rounded-lg border border-[#dde6e0] bg-[#fff5e3] p-4">
             <TriangleAlert size={20} aria-hidden="true" className="mt-0.5 shrink-0 text-[#85520c]" />
             <div>
               <p className="text-sm font-semibold leading-5 text-[#85520c]">
                 Koordinat invalid tidak menghapus sekolah
               </p>
-              <p className="mt-1 text-[11px] font-medium leading-4 text-[#445665]">
+              <p className="mt-1 text-[11px] font-medium leading-4 text-[#52605a]">
                 Rekaman tetap tersedia di daftar; hanya marker yang tidak ditampilkan.
               </p>
             </div>
@@ -293,13 +296,13 @@ export default function OperatorRepair() {
 
         <section aria-labelledby="judul-editor" className={`${CARD} p-[17px]`}>
           <h2 id="judul-editor" className="text-base font-semibold leading-6">Editor nilai</h2>
-          <p className="text-xs leading-[18px] text-[#445665]">
+          <p className="text-xs leading-[18px] text-[#52605a]">
             Pilih satu temuan untuk melihat nilai saat ini dan usulan.
           </p>
 
           <div className="mt-5 flex flex-col gap-4">
             <div>
-              <label htmlFor="nilai-saat-ini" className="mb-1.5 block text-[11px] font-medium text-[#445665]">
+              <label htmlFor="nilai-saat-ini" className="mb-1.5 block text-[11px] font-medium text-[#52605a]">
                 {fieldLabel} saat ini
               </label>
               <input
@@ -312,7 +315,7 @@ export default function OperatorRepair() {
             </div>
             <div>
               <div className="mb-1.5 flex items-center justify-between">
-                <label htmlFor="usulan-nilai" className="block text-[11px] font-medium text-[#445665]">
+                <label htmlFor="usulan-nilai" className="block text-[11px] font-medium text-[#52605a]">
                   Usulan {fieldLabel === 'Nilai' ? 'nilai' : fieldLabel}
                 </label>
                 {(selected?.field === 'koordinat' || selected?.rule === 'Koordinat') && (
@@ -373,7 +376,7 @@ export default function OperatorRepair() {
               )}
             </div>
             <div>
-              <label htmlFor="alasan-perubahan" className="mb-1.5 block text-[11px] font-medium text-[#445665]">
+              <label htmlFor="alasan-perubahan" className="mb-1.5 block text-[11px] font-medium text-[#52605a]">
                 Alasan perubahan
               </label>
               <input
@@ -387,11 +390,11 @@ export default function OperatorRepair() {
               />
             </div>
 
-            <div className="flex items-start gap-3 rounded-lg border border-[#d7e1e8] bg-[#edf3f6] p-4">
-              <FileText size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-[#445665]" />
+            <div className="flex items-start gap-3 rounded-lg border border-[#dde6e0] bg-[#eef4f0] p-4">
+              <FileText size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-[#52605a]" />
               <div>
                 <p className="text-sm font-semibold leading-5">Bukti pendukung</p>
-                <p className="mt-1 text-xs leading-[18px] text-[#445665]">Lampiran belum tersedia</p>
+                <p className="mt-1 text-xs leading-[18px] text-[#52605a]">Lampiran belum tersedia</p>
               </div>
             </div>
 

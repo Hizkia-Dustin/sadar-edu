@@ -28,20 +28,60 @@ export const useMapStore = create((set) => ({
     showSchools: true,
     show3DBuildings: false,
     mcdaLayer: true, // choropleth kategori kebutuhan per kecamatan
+    populationLayer: false, // choropleth jumlah penduduk per kecamatan (BPS)
     showBlankSpots: false,
     showCoverage: false,
     showCandidates: false, // hanya aktif saat dibutuhkan / tab kandidat dibuka agar peta tidak menumpuk
   },
   toggleLayer: (layerKey) =>
-    set((state) => ({ activeLayers: { ...state.activeLayers, [layerKey]: !state.activeLayers[layerKey] } })),
+    set((state) => {
+      const next = !state.activeLayers[layerKey];
+      return {
+        activeLayers: {
+          ...state.activeLayers,
+          [layerKey]: next,
+          ...(layerKey === 'populationLayer' && next ? { mcdaLayer: false } : {}),
+          ...(layerKey === 'mcdaLayer' && next ? { populationLayer: false } : {}),
+        },
+      };
+    }),
   setLayer: (layerKey, value) =>
-    set((state) => ({ activeLayers: { ...state.activeLayers, [layerKey]: Boolean(value) } })),
+    set((state) => {
+      const next = Boolean(value);
+      return {
+        activeLayers: {
+          ...state.activeLayers,
+          [layerKey]: next,
+          ...(layerKey === 'populationLayer' && next ? { mcdaLayer: false } : {}),
+          ...(layerKey === 'mcdaLayer' && next ? { populationLayer: false } : {}),
+        },
+      };
+    }),
+  setChoroplethMode: (mode) =>
+    set((state) => ({
+      activeLayers: {
+        ...state.activeLayers,
+        mcdaLayer: mode === 'mcda',
+        populationLayer: mode === 'population',
+      },
+    })),
+
+  // Titik lokasi rumah pengguna (untuk Peta Publik & perbandingan jarak)
+  userLocation: null,
+  setUserLocation: (loc) => set({ userLocation: loc }),
 
   // Seleksi
   selectedFeature: null, // popup sekolah
   setSelectedFeature: (feature) => set({ selectedFeature: feature }),
   selectedWilayahId: null,
   setSelectedWilayahId: (id) => set({ selectedWilayahId: id === null || id === undefined ? null : String(id) }),
+  highlightedWilayahIds: [],
+  setHighlightedWilayahIds: (ids) =>
+    set({
+      highlightedWilayahIds: Array.isArray(ids)
+        ? [...new Set(ids.filter((v) => v !== null && v !== undefined && v !== '').map((v) => String(v)))]
+        : [],
+    }),
   selectedCandidateId: null,
   setSelectedCandidateId: (id) => set({ selectedCandidateId: id }),
 
@@ -49,6 +89,7 @@ export const useMapStore = create((set) => ({
     set({
       selectedFeature: null,
       selectedWilayahId: null,
+      highlightedWilayahIds: [],
       selectedCandidateId: null,
     }),
 

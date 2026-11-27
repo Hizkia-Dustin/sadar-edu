@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import Map, { Marker, NavigationControl, Source, Layer } from 'react-map-gl/mapbox';
-import { Check, Compass, MapPin, TriangleAlert } from 'lucide-react';
-import { BOGOR_BOUNDS, BOGOR_BOUNDARY, isInBogor } from '../../lib/bogorBoundary';
-import { BTN_PRIMARY, BTN_OUTLINE } from './ui';
+import { Check, MapPin, TriangleAlert } from 'lucide-react';
+import { BOGOR_BOUNDARY, isInBogor } from '../../lib/bogorBoundary';
+import { BTN_PRIMARY, BTN_OUTLINE } from './Ui';
 
 const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 
@@ -53,7 +53,7 @@ export default function OperatorSpatialPicker({
 
   if (!token) {
     return (
-      <div className="rounded-lg border border-[#d7e1e8] bg-[#edf3f6] p-4 text-xs text-[#173042]">
+      <div className="rounded-lg border border-[#dde6e0] bg-[#eef4f0] p-4 text-xs text-[#132a25]">
         Token Mapbox belum tersedia untuk pemilih koordinat interaktif.
       </div>
     );
@@ -66,17 +66,17 @@ export default function OperatorSpatialPicker({
           <MapPin size={16} />
           <span>Kotak-Katik Koordinat Spasial di Peta</span>
         </div>
-        <span className="text-[11px] font-medium text-[#445665] truncate max-w-[200px]" title={schoolName}>
+        <span className="text-[11px] font-medium text-[#52605a] truncate max-w-[200px]" title={schoolName}>
           {schoolName}
         </span>
       </div>
 
-      <p className="text-[11px] text-[#445665] leading-relaxed">
+      <p className="text-[11px] text-[#52605a] leading-relaxed">
         Klik peta atau geser (drag) pin merah ke lokasi sekolah yang tepat. Posisi koordinat akan ter-update otomatis.
       </p>
 
       {/* Mini Map Container */}
-      <div className="relative h-[260px] w-full overflow-hidden rounded-md border border-[#d7e1e8]">
+      <div className="relative h-[260px] w-full overflow-hidden rounded-md border border-[#dde6e0]">
         <Map
           ref={mapRef}
           mapboxAccessToken={token}
@@ -123,10 +123,10 @@ export default function OperatorSpatialPicker({
       </div>
 
       {/* Status Koordinat Terpilih */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#d7e1e8] bg-[#edf3f6] p-2.5 text-xs">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-[#dde6e0] bg-[#eef4f0] p-2.5 text-xs">
         <div>
-          <span className="block text-[10px] uppercase font-bold text-[#445665]">Koordinat Terpilih</span>
-          <span className="font-mono font-semibold text-[#173042]">
+          <span className="block text-[10px] uppercase font-bold text-[#52605a]">Koordinat Terpilih</span>
+          <span className="font-mono font-semibold text-[#132a25]">
             {coord.lat.toFixed(6)}, {coord.lng.toFixed(6)}
           </span>
         </div>

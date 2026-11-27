@@ -1,3 +1,4 @@
+import GeoLoader from '../ui/GeoLoader';
 import { useMemo, useState } from "react";
 import { SlidersHorizontal, Search, ChevronRight } from "lucide-react";
 import { useDataStore } from "../../store/useDataStore";
@@ -82,7 +83,7 @@ export default function PrioritasPanel({ ringkasan, onPilihWilayah }) {
         </InfoBox>
         <ErrorBox message={error} onClose={() => setError("")} />
         <button className={btnPrimary} disabled={!!busy} onClick={() => run("hitung", () => recalculate(), "Analisis selesai dihitung.")}>
-          {busy ? "Menghitung..." : "Hitung analisis sekarang"}
+          {busy === "hitung" ? <GeoLoader label="Menghitung…" /> : "Hitung analisis sekarang"}
         </button>
       </div>
     );
@@ -161,7 +162,7 @@ export default function PrioritasPanel({ ringkasan, onPilihWilayah }) {
             {ok && <p className="text-xs font-medium text-emerald-800" role="status">{ok}</p>}
             <div className="flex items-center gap-2 pt-1">
               <button className={btnPrimary} disabled={!dirty || !!busy || total <= 0} onClick={() => run("simpan", saveWeights, "Bobot disimpan.")}>
-                {busy === "simpan" ? "Menyimpan..." : "Simpan bobot"}
+                {busy === "simpan" ? <GeoLoader label="Menyimpan…" /> : "Simpan bobot"}
               </button>
               <button className={btnGhost} disabled={!dirty || !!busy} onClick={resetWeights}>
                 Reset

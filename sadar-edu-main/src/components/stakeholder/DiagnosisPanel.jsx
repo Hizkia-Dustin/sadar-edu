@@ -12,7 +12,7 @@ const TIPE_KE_SIMULASI = {
   "Penambahan Guru": "Penambahan Guru",
 };
 
-export default function DiagnosisPanel({ wilayahId, onPilihWilayah, onSimulasi }) {
+export default function DiagnosisPanel({ wilayahId, onPilihWilayah, onSimulasi, onOpenChat }) {
   const { prioritas, meta, weights, sekolah, kecamatan } = useDataStore();
   const { setSelectedWilayahId, flyToBounds, flyToSchool, activeLayers, toggleLayer } = useMapStore();
   const [schoolFilter, setSchoolFilter] = useState("rusak");
@@ -154,6 +154,13 @@ export default function DiagnosisPanel({ wilayahId, onPilihWilayah, onSimulasi }
 
           return (
             <>
+              <button type="button" className="sh-pill-btn" onClick={onOpenChat}>Tanya asisten tentang wilayah ini</button>
+              {schoolLists.padat[0] && <button type="button" className="block text-left text-xs font-semibold text-[#1f6f5f] underline" onClick={() => fokusSekolah(schoolLists.padat[0])}>
+                Lihat kelas terpadat di peta · {schoolLists.padat[0].nama}
+              </button>}
+              <button type="button" className="block mt-2 text-xs font-semibold text-[#1f6f5f] underline" onClick={() => onSimulasi({ id_wilayah: p.id_wilayah, tipe: 'Penambahan Ruang Kelas' })}>
+                Simulasikan penambahan ruang kelas
+              </button>
               <section className="sh-section">
                 <div className="flex items-start justify-between gap-3">
                   <div>

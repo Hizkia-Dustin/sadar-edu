@@ -1,3 +1,4 @@
+import GeoLoader from '../ui/GeoLoader';
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { fmt, mapSchoolFeature } from "../../lib/analysis";
@@ -145,7 +146,7 @@ export default function SekolahTab({ onChanged }) {
             <p className="text-[10px] text-slate-400">Kosongkan kolom statistik yang datanya belum ada (jangan isi 0). Kecamatan ditentukan otomatis dari koordinat. Setelah menyimpan, hitung ulang analisis agar skor diperbarui.</p>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" className={btnGhost} onClick={() => setEdit(null)}>Batal</button>
-              <button className={btnPrimary} disabled={saving}>{saving ? "Menyimpan..." : "Simpan"}</button>
+              <button className={btnPrimary} disabled={saving}>{saving ? <GeoLoader label="Menyimpan…" /> : "Simpan"}</button>
             </div>
           </form>
         </div>

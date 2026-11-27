@@ -113,13 +113,13 @@ export default function OperatorMapPreview() {
   return (
     <div className="flex flex-col gap-2.5">
       {/* Kontrol Filter Batas Wilayah */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#d7e1e8] bg-[#f9fafb] px-3 py-2 text-xs">
-        <label className="flex items-center gap-2 cursor-pointer font-medium text-[#173042]">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#dde6e0] bg-[#f7faf8] px-3 py-2 text-xs">
+        <label className="flex items-center gap-2 cursor-pointer font-medium text-[#132a25]">
           <input
             type="checkbox"
             checked={filterBogorOnly}
             onChange={(e) => setFilterBogorOnly(e.target.checked)}
-            className="h-4 w-4 rounded border-[#d7e1e8] text-[#1f6f5f] focus:ring-[#1f6f5f]"
+            className="h-4 w-4 rounded border-[#dde6e0] text-[#1f6f5f] focus:ring-[#1f6f5f]"
           />
           <span>Hanya tampilkan dalam batas Kab. Bogor ({data.features.length} titik • Sama dengan Peta Publik)</span>
         </label>
@@ -136,7 +136,7 @@ export default function OperatorMapPreview() {
 
       {error && <p role="alert" className="text-xs text-red-800">{error}</p>}
 
-      <div style={{ height: 370, borderRadius: 12, overflow: 'hidden', border: '1px solid #d7e1e8' }}>
+      <div style={{ height: 370, borderRadius: 12, overflow: 'hidden', border: '1px solid #dde6e0' }}>
         <Map
           mapboxAccessToken={token}
           mapStyle="mapbox://styles/mapbox/streets-v12"
@@ -179,9 +179,9 @@ export default function OperatorMapPreview() {
               onClose={() => setSelected(null)}
               closeOnClick={false}
             >
-              <div className="p-2 text-xs text-slate-800 max-w-[220px]">
-                <strong className="block text-sm text-[#173042]">{selected.properties.nama}</strong>
-                <p className="text-[#445665]">NPSN: {selected.properties.npsn || '—'}</p>
+              <div className="pt-0.5 text-xs text-slate-800 max-w-[240px]">
+                <strong className="block text-sm text-[#132a25] pr-9">{selected.properties.nama}</strong>
+                <p className="text-[#52605a]">NPSN: {selected.properties.npsn || '—'}</p>
                 <div className="mt-1">
                   {selected.properties.state === 'Luar batas Bogor' ? (
                     <span className="inline-block rounded bg-[#fff0f0] px-2 py-0.5 text-[10px] font-semibold text-[#a12b31]">

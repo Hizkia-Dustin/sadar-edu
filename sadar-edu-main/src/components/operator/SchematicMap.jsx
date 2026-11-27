@@ -7,13 +7,13 @@ export default function SchematicMap() {
       aria-label="Ilustrasi peta skematis tanpa data nyata"
       className="h-auto w-full"
     >
-      <rect width="684" height="218" fill="#edf3f6" />
+      <rect width="684" height="218" fill="#eef4f0" />
       <path d="M0 34 L150 0 H684 V92 L500 124 L250 96 L0 126 Z" fill="#dfe9dc" />
       <path d="M0 160 L250 126 L500 150 L684 118 V218 H0 Z" fill="#dfe9dc" />
       <path
         d="M236 0 C214 60 262 118 232 218"
         fill="none"
-        stroke="#bfe3ec"
+        stroke="#c9e9d8"
         strokeWidth="24"
         strokeLinecap="round"
       />
@@ -24,7 +24,7 @@ export default function SchematicMap() {
         <path d="M110 190 L260 60 L430 130 L684 96" />
       </g>
       <path d="M0 196 C200 140 400 150 684 84" fill="none" stroke="#e6a03c" strokeWidth="1.5" />
-      <g fill="#1b4965" stroke="#ffffff" strokeWidth="2">
+      <g fill="#145646" stroke="#ffffff" strokeWidth="2">
         <circle cx="128" cy="106" r="6" />
         <circle cx="258" cy="74" r="6" />
         <circle cx="388" cy="122" r="6" />

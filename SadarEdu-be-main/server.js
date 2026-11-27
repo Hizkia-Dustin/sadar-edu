@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ override: true });
 const app = require('./src/app');
 const db = require('./src/config/db');
 const seedRoles = require('./src/config/seedRoles');

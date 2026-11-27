@@ -1,25 +1,30 @@
-import { LocateFixed, Layers, ArrowRight, Plus, Check } from "lucide-react";
+import { LocateFixed, Layers, ArrowRight, Plus, Check, Home } from "lucide-react";
 import { useRef, useCallback, useEffect, useMemo, useState } from "react";
-import MapView, { NavigationControl, Source, Layer, Popup } from "react-map-gl/mapbox";
+import MapView, { NavigationControl, Source, Layer, Popup, Marker } from "react-map-gl/mapbox";
 import { useMapStore } from "../../store/useMapStore";
 import { useDataStore } from "../../store/useDataStore";
 import { rescoreFeatures, colorOf } from "../../lib/analysis";
 import { BOGOR_BOUNDARY, BOGOR_BOUNDS, isInBogor } from "../../lib/bogorBoundary";
 import { populationColor } from "../../lib/population";
+import { createCircleGeoJSON, formatDistance, haversineKm } from "../../lib/geoDistance";
 import kabupatenBoundary from "../../data/kabupaten-bogor.geojson.json";
 import { useDistrictHover } from "./useDistrictHover";
+import { registerSchoolPins } from "./schoolPins";
+
+const EMPTY_FC = { type: "FeatureCollection", features: [] };
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 const UNCLUSTERED = ["!", ["has", "point_count"]];
 
 const schoolLayerStyle = {
   id: "schools-layer",
-  type: "circle",
-  paint: {
-    "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 4, 11, 5.5, 14, 7.5, 16, 9.5],
-    "circle-color": ["match", ["get", "status"], "Negeri", "#0f766e", "Swasta", "#d97706", "#64748B"],
-    "circle-stroke-width": 1.75,
-    "circle-stroke-color": "#ffffff",
+  type: "symbol",
+  layout: {
+    "icon-image": ["match", ["get", "status"], "negeri", "school-pin-negeri", "swasta", "school-pin-swasta", "school-pin-unknown"],
+    "icon-anchor": "bottom",
+    "icon-size": ["interpolate", ["linear"], ["zoom"], 8, 0.68, 12, 0.86, 16, 1],
+    "icon-allow-overlap": true,
+    "icon-ignore-placement": true,
   },
 };
 
@@ -29,6 +34,23 @@ const clusterCirclePaint = {
   "circle-stroke-width": 2.5,
   "circle-stroke-color": "rgba(255, 255, 255, 0.92)",
   "circle-opacity": 0.92,
+};
+
+// Cincin lembut di belakang cluster: memberi kesan "titik hidup" pada peta publik
+const clusterHaloPaint = {
+  "circle-color": ["step", ["get", "point_count"], "#1f6f5f", 20, "#175649", 50, "#134e4a"],
+  "circle-radius": ["step", ["get", "point_count"], 22, 20, 28, 50, 34],
+  "circle-opacity": 0.24,
+  "circle-blur": 0.3,
+};
+
+const focusHaloPaint = {
+  "circle-color": "#0f766e",
+  "circle-radius": ["interpolate", ["linear"], ["zoom"], 8, 14, 14, 22, 17, 28],
+  "circle-opacity": 0.18,
+  "circle-stroke-color": "#0f766e",
+  "circle-stroke-width": 2,
+  "circle-stroke-opacity": 0.75,
 };
 
 const clusterCountLayout = {
@@ -55,6 +77,20 @@ const wilayahSelected = (id) => ({
   slot: "middle",
   filter: ["==", ["get", "id"], id == null ? -1 : Number.isFinite(Number(id)) ? Number(id) : id],
   paint: { "line-color": "#0f172a", "line-width": 2.8, "line-opacity": 0.95 },
+});
+const wilayahChatHighlightFill = (ids) => ({
+  id: "wilayah-chat-highlight-fill",
+  type: "fill",
+  slot: "middle",
+  filter: ["in", ["to-string", ["get", "id"]], ["literal", ids && ids.length ? ids : ["__none__"]]],
+  paint: { "fill-color": "#e11d48", "fill-opacity": 0.16 },
+});
+const wilayahChatHighlightLine = (ids) => ({
+  id: "wilayah-chat-highlight-line",
+  type: "line",
+  slot: "middle",
+  filter: ["in", ["to-string", ["get", "id"]], ["literal", ids && ids.length ? ids : ["__none__"]]],
+  paint: { "line-color": "#be123c", "line-width": 3.4, "line-opacity": 0.98 },
 });
 
 const blankFill = {
@@ -118,6 +154,11 @@ export default function MapCanvas({
   publicNeeds,
   onDistrictSelect,
   selectedPopulationId,
+  userLocation = null,
+  radiusKm = null,
+  pickLocationMode = false,
+  onPickLocation,
+  focusedSchoolCoords = null,
 }) {
   const mapRef = useRef();
   const [populationPopup, setPopulationPopup] = useState(null);
@@ -141,12 +182,13 @@ export default function MapCanvas({
     pendingBounds,
     selectedWilayahId,
     setSelectedWilayahId,
+    highlightedWilayahIds,
     selectedCandidateId,
     setSelectedCandidateId,
   } = useMapStore();
   const activeLayers = publicLayers || storedLayers;
   const districtHover = useDistrictHover({
-    enabled: publicExplorer && (activeLayers?.populationLayer || activeLayers?.mcdaLayer),
+    enabled: !pickLocationMode && ((activeLayers?.populationLayer && Boolean(population?.features?.length)) || (publicExplorer && activeLayers?.mcdaLayer)),
     population,
     popupOpen: Boolean(selectedFeature || (activeLayers?.populationLayer && populationPopup)),
   });
@@ -226,21 +268,27 @@ export default function MapCanvas({
     };
   }, [prioritas, weights, meta, publicExplorer, publicNeeds]);
 
-  // Spotlight spasial: ketika satu kecamatan dipilih, kecamatan lain diredupkan agar fokus visual tajam
+  // Spotlight spasial: ketika satu kecamatan dipilih atau beberapa kecamatan disorot chat, wilayah lain diredupkan
   const activeDistrictKey = publicExplorer ? selectedPopulationId : selectedWilayahId;
   const wilayahFillPaint = useMemo(() => {
-    if (!activeDistrictKey) {
+    if (activeDistrictKey) {
+      const targetVal = Number.isFinite(Number(activeDistrictKey)) ? Number(activeDistrictKey) : String(activeDistrictKey);
       return {
         "fill-color": ["get", "color"],
-        "fill-opacity": publicExplorer ? 0.55 : 0.38,
+        "fill-opacity": ["case", ["==", ["get", "id"], targetVal], 0.54, 0.13],
       };
     }
-    const targetVal = Number.isFinite(Number(activeDistrictKey)) ? Number(activeDistrictKey) : String(activeDistrictKey);
+    if (!publicExplorer && highlightedWilayahIds && highlightedWilayahIds.length > 0) {
+      return {
+        "fill-color": ["get", "color"],
+        "fill-opacity": ["case", ["in", ["to-string", ["get", "id"]], ["literal", highlightedWilayahIds]], 0.56, 0.14],
+      };
+    }
     return {
       "fill-color": ["get", "color"],
-      "fill-opacity": ["case", ["==", ["get", "id"], targetVal], 0.52, 0.13],
+      "fill-opacity": publicExplorer ? 0.55 : 0.38,
     };
-  }, [activeDistrictKey, publicExplorer]);
+  }, [activeDistrictKey, publicExplorer, highlightedWilayahIds]);
 
   const candidateGeoJson = useMemo(
     () => ({
@@ -294,7 +342,7 @@ export default function MapCanvas({
         geometry: feature.geometry,
         properties: {
           id: feature.properties.id,
-          status: feature.properties.status === "Negeri" ? "Negeri" : "Swasta",
+          status: String(feature.properties.status ?? "").trim().toLowerCase(),
         },
       })),
     };
@@ -311,6 +359,7 @@ export default function MapCanvas({
 
   const onMapLoad = useCallback(
     (evt) => {
+      registerSchoolPins(evt.target);
       try {
         evt.target.setConfigProperty("basemap", "show3dObjects", Boolean(activeLayers?.show3DBuildings));
       } catch {
@@ -338,6 +387,7 @@ export default function MapCanvas({
     candidateGeoJson.features.length,
     activeLayers,
     selectedWilayahId,
+    highlightedWilayahIds,
   ]);
 
   useEffect(() => {
@@ -364,27 +414,68 @@ export default function MapCanvas({
     );
   }, [pendingBounds, cameraPadding]);
 
+  const userRadiusGeoJson = useMemo(() => {
+    if (!userLocation || !radiusKm || radiusKm <= 0) return EMPTY_FC;
+    return createCircleGeoJSON([userLocation.lng, userLocation.lat], radiusKm);
+  }, [userLocation, radiusKm]);
+
+  const connectorGeoJson = useMemo(() => {
+    if (!userLocation) return EMPTY_FC;
+    const target =
+      focusedSchoolCoords ||
+      (selectedFeature ? [selectedFeature.longitude, selectedFeature.latitude] : null);
+    if (!target) return EMPTY_FC;
+    return {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: {},
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [userLocation.lng, userLocation.lat],
+              target,
+            ],
+          },
+        },
+      ],
+    };
+  }, [userLocation, focusedSchoolCoords, selectedFeature]);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+    mapRef.current.getCanvas().style.cursor = pickLocationMode ? "crosshair" : "";
+  }, [pickLocationMode]);
+
   const interactiveLayerIds = useMemo(() => {
+    if (pickLocationMode) return [];
     const ids = [];
     if (activeLayers?.showSchools) {
       ids.push("schools-layer", "school-clusters");
     }
     if (activeLayers?.showCandidates && candidates.features.length) ids.push("candidate-fill");
     if (activeLayers?.mcdaLayer) ids.push("wilayah-fill");
-    if (publicExplorer && activeLayers?.populationLayer && populationGeoJson.features.length) ids.push("population-fill");
+    if (activeLayers?.populationLayer && populationGeoJson.features.length) ids.push("population-fill");
     return ids;
-  }, [activeLayers, candidates.features.length, publicExplorer, populationGeoJson.features.length]);
+  }, [pickLocationMode, activeLayers, candidates.features.length, populationGeoJson.features.length]);
 
   const onMapClick = useCallback(
     (event) => {
+      if (pickLocationMode && onPickLocation) {
+        onPickLocation({ lng: event.lngLat.lng, lat: event.lngLat.lat });
+        return;
+      }
       setPopulationPopup(null);
-      if (publicExplorer && !isInBogor([event.lngLat.lng, event.lngLat.lat])) {
+      const schoolHit = event.features?.find((item) => ["schools-layer", "school-clusters"].includes(item.layer.id));
+      // Klik pada kepala pin dapat jatuh di seberang batas meski koordinat sekolah ada di Bogor.
+      if (publicExplorer && !isInBogor(schoolHit?.geometry.coordinates ?? [event.lngLat.lng, event.lngLat.lat])) {
         setSelectedFeature(null);
         return;
       }
       // Prioritaskan klik titik/cluster sekolah, lalu kandidat, baru poligon kecamatan
       const feature =
-        event.features?.find((item) => ["schools-layer", "school-clusters"].includes(item.layer.id)) ||
+        schoolHit ||
         event.features?.find((item) => item.layer.id === "candidate-fill") ||
         event.features?.[0];
 
@@ -458,12 +549,14 @@ export default function MapCanvas({
       onDistrictSelect,
       selectedWilayahId,
       kecamatan,
+      pickLocationMode,
+      onPickLocation,
     ]
   );
 
   const setCursor = useCallback((cursor) => {
-    if (mapRef.current) mapRef.current.getCanvas().style.cursor = cursor;
-  }, []);
+    if (mapRef.current) mapRef.current.getCanvas().style.cursor = pickLocationMode ? "crosshair" : cursor;
+  }, [pickLocationMode]);
 
   if (!MAPBOX_TOKEN) {
     return (
@@ -509,7 +602,7 @@ export default function MapCanvas({
         projection="mercator"
         maxPitch={0}
         minZoom={8}
-        {...(publicExplorer ? { maxBounds: BOGOR_BOUNDS, onMouseMove: districtHover.move } : {})}
+        {...(publicExplorer ? { maxBounds: BOGOR_BOUNDS, onMouseMove: districtHover.move } : { onMouseMove: districtHover.move })}
         renderWorldCopies={!publicExplorer}
         interactiveLayerIds={interactiveLayerIds}
         onClick={(event) => {
@@ -532,10 +625,10 @@ export default function MapCanvas({
           </Source>
         )}
 
-        {publicExplorer && activeLayers?.populationLayer && populationGeoJson.features.length > 0 && (
+        {activeLayers?.populationLayer && populationGeoJson.features.length > 0 && (
           <Source id="population-source" type="geojson" data={populationGeoJson} tolerance={0}>
-            <Layer id="population-fill" type="fill" slot="middle" paint={{ "fill-color": ["get", "color"], "fill-opacity": 0.62 }} />
-            <Layer id="population-line" type="line" slot="middle" paint={{ "line-color": "#58746b", "line-width": 0.8, "line-opacity": 0.65 }} />
+            <Layer id="population-fill" type="fill" slot="middle" paint={{ "fill-color": ["get", "color"], "fill-opacity": 0.6 }} />
+            <Layer id="population-line" type="line" slot="middle" paint={{ "line-color": "#58746b", "line-width": 0.85, "line-opacity": 0.65 }} />
             <Layer id="population-selected" type="line" slot="middle" filter={["==", ["get", "id"], selectedPopulationId || ""]} paint={{ "line-color": "#173f35", "line-width": 2.5 }} />
           </Source>
         )}
@@ -544,6 +637,8 @@ export default function MapCanvas({
           <Source id="wilayah-source" type="geojson" data={wilayahGeoJson} tolerance={0}>
             <Layer {...wilayahFill} paint={wilayahFillPaint} />
             <Layer {...wilayahLine} />
+            {!publicExplorer && <Layer {...wilayahChatHighlightFill(highlightedWilayahIds)} />}
+            {!publicExplorer && <Layer {...wilayahChatHighlightLine(highlightedWilayahIds)} />}
             <Layer {...wilayahSelected(activeDistrictKey)} />
           </Source>
         )}
@@ -572,6 +667,9 @@ export default function MapCanvas({
             clusterMaxZoom={12}
             clusterRadius={publicExplorer ? 42 : 52}
           >
+            {publicExplorer && (
+              <Layer id="school-cluster-halo" type="circle" filter={["has", "point_count"]} paint={clusterHaloPaint} />
+            )}
             <Layer id="school-clusters" type="circle" filter={["has", "point_count"]} paint={clusterCirclePaint} />
             <Layer id="school-cluster-count" type="symbol" filter={["has", "point_count"]} layout={clusterCountLayout} paint={{ "text-color": "#ffffff" }} />
             <Layer {...schoolLayerStyle} filter={UNCLUSTERED} />
@@ -594,7 +692,48 @@ export default function MapCanvas({
           </Source>
         )}
 
-        {publicExplorer && activeLayers?.populationLayer && populationPopup && !selectedFeature && (
+        {userRadiusGeoJson.features.length > 0 && (
+          <Source id="user-radius-source" type="geojson" data={userRadiusGeoJson}>
+            <Layer id="user-radius-fill" type="fill" slot="middle" paint={{ "fill-color": "#0f766e", "fill-opacity": 0.09 }} />
+            <Layer id="user-radius-line" type="line" slot="middle" paint={{ "line-color": "#0f766e", "line-width": 2, "line-dasharray": [4, 3], "line-opacity": 0.85 }} />
+          </Source>
+        )}
+
+        {publicExplorer && focusedSchoolCoords && (
+          <Source
+            id="school-focus-halo"
+            type="geojson"
+            data={{ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: focusedSchoolCoords } }}
+          >
+            <Layer id="school-focus-halo-circle" type="circle" slot="top" paint={focusHaloPaint} />
+          </Source>
+        )}
+
+        {connectorGeoJson.features.length > 0 && (
+          <Source id="user-school-connector" type="geojson" data={connectorGeoJson}>
+            <Layer id="user-school-line" type="line" slot="top" paint={{ "line-color": "#0f766e", "line-width": 2.2, "line-dasharray": [2, 2], "line-opacity": 0.9 }} />
+          </Source>
+        )}
+
+        {userLocation && (
+          <Marker
+            longitude={userLocation.lng}
+            latitude={userLocation.lat}
+            anchor="bottom"
+            draggable={Boolean(onPickLocation)}
+            onDragEnd={(evt) => onPickLocation?.({ lng: evt.lngLat.lng, lat: evt.lngLat.lat })}
+          >
+            <div className="user-home-pin" title="Lokasi rumah Anda (geser untuk memindahkan)">
+              <span className="user-home-pin-pulse" aria-hidden="true" />
+              <span className="user-home-pin-head">
+                <Home size={14} strokeWidth={2.3} />
+              </span>
+              <span className="user-home-pin-tip" aria-hidden="true" />
+            </div>
+          </Marker>
+        )}
+
+        {activeLayers?.populationLayer && populationPopup && !selectedFeature && (
           <Popup
             className="school-preview-popup"
             maxWidth="280px"
@@ -612,15 +751,17 @@ export default function MapCanvas({
                 <a href={populationPopup.properties.sumber_penduduk} target="_blank" rel="noreferrer">
                   Sumber BPS ↗
                 </a>
-                <button
-                  className="school-preview-profile"
-                  onClick={() => {
-                    onDistrictSelect?.(populationPopup.properties.id);
-                    setPopulationPopup(null);
-                  }}
-                >
-                  Lihat sekolah <ArrowRight size={14} />
-                </button>
+                {onDistrictSelect && (
+                  <button
+                    className="school-preview-profile"
+                    onClick={() => {
+                      onDistrictSelect(populationPopup.properties.id, populationPopup.properties.nama);
+                      setPopulationPopup(null);
+                    }}
+                  >
+                    {publicExplorer ? "Lihat sekolah" : "Buka diagnosis"} <ArrowRight size={14} />
+                  </button>
+                )}
               </div>
             </section>
           </Popup>
@@ -642,10 +783,19 @@ export default function MapCanvas({
               <section className="school-preview" aria-label="Pratinjau sekolah">
                 <h3>{selectedFeature.properties.nama}</h3>
                 <p>
-                  {[selectedFeature.properties.status, selectedFeature.properties.kecamatan && `Kec. ${selectedFeature.properties.kecamatan}`]
+                  {[
+                    selectedFeature.properties.status,
+                    selectedFeature.properties.akreditasi && `Akr. ${selectedFeature.properties.akreditasi}`,
+                    selectedFeature.properties.kecamatan && `Kec. ${selectedFeature.properties.kecamatan}`,
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
+                {userLocation && (
+                  <p className="school-preview-distance">
+                    {formatDistance(haversineKm([userLocation.lng, userLocation.lat], [selectedFeature.longitude, selectedFeature.latitude]))} dari lokasi rumah Anda
+                  </p>
+                )}
                 <div className="school-preview-actions">
                   <button
                     className="school-preview-profile"
@@ -680,9 +830,9 @@ export default function MapCanvas({
                 </div>
               </section>
             ) : (
-              <div className="p-1.5 min-w-[240px] max-w-[280px] text-slate-800 space-y-2.5">
+              <div className="pt-0.5 min-w-[248px] max-w-[290px] text-slate-800 space-y-2.5">
                 <div>
-                  <h3 className="font-bold text-[#132a25] text-sm leading-snug pr-4">{selectedFeature.properties.nama}</h3>
+                  <h3 className="font-bold text-[#132a25] text-sm leading-snug pr-9">{selectedFeature.properties.nama}</h3>
                   <p className="text-xs text-slate-600 mt-0.5">
                     NPSN {selectedFeature.properties.npsn || "-"}
                     {selectedFeature.properties.kecamatan ? ` · Kec. ${selectedFeature.properties.kecamatan}` : ""}

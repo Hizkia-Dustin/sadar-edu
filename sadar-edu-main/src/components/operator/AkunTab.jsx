@@ -1,3 +1,4 @@
+import GeoLoader from '../ui/GeoLoader';
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../../lib/api";
 import { ErrorBox, Spinner, inputCls, btnPrimary } from "../ui/kit";
@@ -51,7 +52,7 @@ export default function AkunTab() {
           <select id="ar" className={inputCls} value={form.role} onChange={set("role")}><option>Stakeholder</option><option>Operator</option></select></div>
         <ErrorBox message={error} onClose={() => setError("")} />
         {ok && <p className="text-xs text-emerald-700" role="status">{ok}</p>}
-        <button className={btnPrimary + " w-full"} disabled={saving}>{saving ? "Membuat..." : "Buat akun"}</button>
+        <button className={btnPrimary + " w-full"} disabled={saving}>{saving ? <GeoLoader label="Membuat akun…" /> : "Buat akun"}</button>
       </form>
       <section className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         {loading ? <Spinner /> : (

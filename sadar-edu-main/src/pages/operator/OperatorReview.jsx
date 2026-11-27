@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ============================================================================
  * HALAMAN: Review Metadata & Pengajuan Sinkronisasi (Operator)
  * ============================================================================
@@ -11,6 +11,7 @@
  * ============================================================================
  */
 
+import GeoLoader from '../../components/ui/GeoLoader';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, LockOpen, ShieldCheck } from 'lucide-react';
@@ -24,11 +25,11 @@ import {
   PageHeader,
   StatusPill,
   formatTimestamp,
-} from '../../components/operator/ui';
+} from '../../components/operator/Ui';
 
 const FULL_WIDTH = ['attribution', 'note'];
 
-const fieldClass = `w-full rounded-md border border-[#d7e1e8] bg-[#edf3f6] px-[11px] text-xs text-[#173042] placeholder:text-[#445665] disabled:cursor-not-allowed disabled:text-[#445665] ${FOCUS}`;
+const fieldClass = `w-full rounded-md border border-[#dde6e0] bg-[#eef4f0] px-[11px] text-xs text-[#132a25] placeholder:text-[#52605a] disabled:cursor-not-allowed disabled:text-[#52605a] ${FOCUS}`;
 
 export default function OperatorReview() {
   const navigate = useNavigate();
@@ -90,6 +91,7 @@ export default function OperatorReview() {
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-7">
       <PageHeader
+        art="review"
         eyebrow="Langkah 4"
         title="Review dan ajukan pembaruan"
         description="Pastikan metadata, validasi, bukti, dan atribusi lengkap."
@@ -120,7 +122,7 @@ export default function OperatorReview() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_386px]">
         <section aria-labelledby="judul-provenance" className={`${CARD} min-w-0 p-[17px]`}>
           <h2 id="judul-provenance" className="text-base font-semibold leading-6">Informasi Sumber & Periode Data (Provenance)</h2>
-          <p className="text-xs leading-[18px] text-[#445665]">
+          <p className="text-xs leading-[18px] text-[#52605a]">
             Catat instansi resmi sumber data, tahun periode (misal: 2026 atau 2028), dan cakupan wilayah sebelum disimpan ke PostgreSQL.
           </p>
 
@@ -129,7 +131,7 @@ export default function OperatorReview() {
               <div key={field.key} className={FULL_WIDTH.includes(field.key) ? 'sm:col-span-2' : undefined}>
                 <label
                   htmlFor={`prov-${field.key}`}
-                  className="mb-1.5 block text-[11px] font-medium text-[#445665]"
+                  className="mb-1.5 block text-[11px] font-medium text-[#52605a]"
                 >
                   {field.label}
                 </label>
@@ -159,11 +161,11 @@ export default function OperatorReview() {
             ))}
           </div>
 
-          <div className="mt-5 flex items-start gap-3 rounded-lg border border-[#d7e1e8] bg-[#e8f3f0] p-4">
+          <div className="mt-5 flex items-start gap-3 rounded-lg border border-[#dde6e0] bg-[#e8f3f0] p-4">
             <ShieldCheck size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-[#126552]" />
             <div>
               <p className="text-sm font-semibold leading-5 text-[#126552]">Review privasi dan izin publik</p>
-              <p className="mt-1 text-xs leading-[18px] text-[#445665]">
+              <p className="mt-1 text-xs leading-[18px] text-[#52605a]">
                 Pastikan hanya field yang diizinkan masuk ke rilis publik.
               </p>
             </div>
@@ -175,7 +177,7 @@ export default function OperatorReview() {
             <h2 id="judul-gerbang-ajuan" className="text-base font-semibold leading-6">Kriteria Kelulusan Pengajuan</h2>
             <StatusPill tone={pill.tone}>{pill.text}</StatusPill>
           </div>
-          <p className="mt-1 text-xs text-[#445665]">Semua kriteria wajib lulus sebelum data disinkronkan ke server.</p>
+          <p className="mt-1 text-xs text-[#52605a]">Semua kriteria wajib lulus sebelum data disinkronkan ke server.</p>
 
           <ul className="mt-5 flex flex-col gap-2.5">
             {gates.map((gate) => {
@@ -183,7 +185,7 @@ export default function OperatorReview() {
               return (
                 <li
                   key={gate.name}
-                  className="flex min-h-[64px] items-center gap-3 rounded-lg border border-[#d7e1e8] bg-[#f9fafb] px-[11px] py-2"
+                  className="flex min-h-[64px] items-center gap-3 rounded-lg border border-[#dde6e0] bg-[#f7faf8] px-[11px] py-2"
                 >
                   <Icon
                     size={18}
@@ -214,12 +216,12 @@ export default function OperatorReview() {
             className={`${BTN_PRIMARY} mt-5 w-full disabled:cursor-not-allowed disabled:opacity-50`}
           >
             {isSyncing
-              ? 'Menyinkronkan ke database…'
+              ? <GeoLoader label="Menyinkronkan ke database…" />
               : submitted
               ? 'Sudah diajukan & disinkronkan'
               : 'Terapkan & Simpan ke Database'}
           </button>
-          <p id="catatan-kirim" className="mt-3 text-[11px] font-medium leading-4 text-[#445665]">
+          <p id="catatan-kirim" className="mt-3 text-[11px] font-medium leading-4 text-[#52605a]">
             Sinkronisasi otomatis ke database PostgreSQL & PostGIS saat diajukan.
           </p>
           <button

@@ -1,3 +1,4 @@
+import GeoLoader from './GeoLoader';
 import { KATEGORI_STYLE } from "../../lib/analysis";
 
 export const inputCls =
@@ -37,8 +38,8 @@ export function InfoBox({ children, tone = "slate" }) {
   return <div className={`text-xs border rounded-lg px-3.5 py-2.5 leading-relaxed ${tones[tone]}`}>{children}</div>;
 }
 
-export function Spinner({ label = "Memuat..." }) {
-  return <p className="text-xs text-slate-600 py-6 text-center" role="status">{label}</p>;
+export function Spinner({ label = "Memuat…" }) {
+  return <div className="py-6 text-center text-xs text-slate-600"><GeoLoader label={label} /></div>;
 }
 
 export function Bar({ value, max = 100, color = "#1F6F5F" }) {

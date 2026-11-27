@@ -14,9 +14,10 @@
  * ============================================================================
  */
 
+import GeoLoader from '../ui/GeoLoader';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Map, { Source, Layer, Popup, NavigationControl } from 'react-map-gl/mapbox';
-import { Maximize2, RefreshCw } from 'lucide-react';
+import { Maximize2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { BOGOR_BOUNDS, BOGOR_BOUNDARY, isInBogor } from '../../lib/bogorBoundary';
 import { useOperatorStore } from '../../store/useOperatorStore';
@@ -154,9 +155,9 @@ export default function OperatorIndicatorMap({ onSelectSchool, highlightedNpsn }
 
   if (!token) {
     return (
-      <div className="flex h-[380px] w-full flex-col items-center justify-center rounded-lg border border-[#d7e1e8] bg-[#edf3f6] p-4 text-center">
-        <p className="text-sm font-semibold text-[#173042]">Token Mapbox belum dikonfigurasi</p>
-        <p className="mt-1 text-xs text-[#445665]">Tambahkan VITE_MAPBOX_ACCESS_TOKEN di file .env untuk menampilkan peta.</p>
+      <div className="flex h-[380px] w-full flex-col items-center justify-center rounded-lg border border-[#dde6e0] bg-[#eef4f0] p-4 text-center">
+        <p className="text-sm font-semibold text-[#132a25]">Token Mapbox belum dikonfigurasi</p>
+        <p className="mt-1 text-xs text-[#52605a]">Tambahkan VITE_MAPBOX_ACCESS_TOKEN di file .env untuk menampilkan peta.</p>
       </div>
     );
   }
@@ -164,13 +165,13 @@ export default function OperatorIndicatorMap({ onSelectSchool, highlightedNpsn }
   return (
     <div className="relative flex flex-col gap-2">
       {/* Kontrol Filter Batas Wilayah */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#d7e1e8] bg-[#f9fafb] px-3 py-2 text-xs">
-        <label className="flex items-center gap-2 cursor-pointer font-medium text-[#173042]">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#dde6e0] bg-[#f7faf8] px-3 py-2 text-xs">
+        <label className="flex items-center gap-2 cursor-pointer font-medium text-[#132a25]">
           <input
             type="checkbox"
             checked={filterBogorOnly}
             onChange={(e) => setFilterBogorOnly(e.target.checked)}
-            className="h-4 w-4 rounded border-[#d7e1e8] text-[#1f6f5f] focus:ring-[#1f6f5f]"
+            className="h-4 w-4 rounded border-[#dde6e0] text-[#1f6f5f] focus:ring-[#1f6f5f]"
           />
           <span>Hanya tampilkan dalam batas Kab. Bogor ({geojson.features.length} titik • Sama dengan Peta Publik)</span>
         </label>
@@ -182,13 +183,10 @@ export default function OperatorIndicatorMap({ onSelectSchool, highlightedNpsn }
       </div>
 
       {/* Area Peta */}
-      <div className="relative h-[380px] w-full overflow-hidden rounded-lg border border-[#d7e1e8]">
+      <div className="relative h-[380px] w-full overflow-hidden rounded-lg border border-[#dde6e0]">
         {loading && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-xs">
-            <div className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 shadow-sm">
-              <RefreshCw size={15} className="animate-spin text-[#1f6f5f]" />
-              <span className="text-xs font-semibold text-[#173042]">Memuat data spasial…</span>
-            </div>
+            <GeoLoader className="rounded-lg bg-white px-3 py-2 text-xs font-semibold text-[#132a25] shadow-sm" label="Memuat data spasial…" />
           </div>
         )}
 
@@ -256,16 +254,16 @@ export default function OperatorIndicatorMap({ onSelectSchool, highlightedNpsn }
               anchor="bottom"
               offset={14}
             >
-              <div className="min-w-[210px] p-1 text-[#173042]">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[#1f6f5f]">
+              <div className="min-w-[220px] pt-0.5 text-[#132a25]">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#1f6f5f] pr-9">
                   {selected.properties.state}
                 </p>
-                <h4 className="mt-0.5 text-xs font-bold leading-tight">
+                <h4 className="mt-0.5 text-xs font-bold leading-tight pr-9">
                   {selected.properties.nama}
                 </h4>
-                <div className="mt-1.5 space-y-0.5 text-[11px] text-[#445665]">
-                  <p>NPSN: <span className="font-semibold text-[#173042]">{selected.properties.npsn || '—'}</span></p>
-                  <p>Jenjang: <span className="font-semibold text-[#173042]">{selected.properties.jenjang || '—'}</span></p>
+                <div className="mt-1.5 space-y-0.5 text-[11px] text-[#52605a]">
+                  <p>NPSN: <span className="font-semibold text-[#132a25]">{selected.properties.npsn || '—'}</span></p>
+                  <p>Jenjang: <span className="font-semibold text-[#132a25]">{selected.properties.jenjang || '—'}</span></p>
                   <p className="text-[10px] text-slate-500">
                     {selected.geometry.coordinates[1].toFixed(5)}, {selected.geometry.coordinates[0].toFixed(5)}
                   </p>
@@ -290,7 +288,7 @@ export default function OperatorIndicatorMap({ onSelectSchool, highlightedNpsn }
           type="button"
           onClick={handleResetView}
           title="Kembalikan batas wilayah Bogor"
-          className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-md border border-[#d7e1e8] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#173042] shadow-sm hover:bg-[#edf3f6]"
+          className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-md border border-[#dde6e0] bg-white px-2.5 py-1.5 text-[11px] font-semibold text-[#132a25] shadow-sm hover:bg-[#eef4f0]"
         >
           <Maximize2 size={13} />
           Reset Fokus
@@ -298,7 +296,7 @@ export default function OperatorIndicatorMap({ onSelectSchool, highlightedNpsn }
       </div>
 
       {/* Baris Legenda & Status Data */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-[#445665]">
+      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-[#52605a]">
         <div className="flex flex-wrap items-center gap-4">
           <span className="flex items-center gap-1.5">
             <span className="h-2.5 w-2.5 rounded-full bg-[#1f6f5f]" />
@@ -318,7 +316,7 @@ export default function OperatorIndicatorMap({ onSelectSchool, highlightedNpsn }
           </span>
         </div>
         <p className="text-[11px] font-medium text-slate-500">
-          Total: <strong className="text-[#173042]">{geojson.features.length}</strong> sekolah terpetakan
+          Total: <strong className="text-[#132a25]">{geojson.features.length}</strong> sekolah terpetakan
         </p>
       </div>
 

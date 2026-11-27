@@ -1,4 +1,4 @@
-﻿/**
+/**
  * ============================================================================
  * HALAMAN: Hasil Validasi Integritas Dataset (Operator)
  * ============================================================================
@@ -14,6 +14,7 @@
  * ============================================================================
  */
 
+import { GeoMark } from '../../components/ui/GeoLoader';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Database, Info, ShieldCheck } from 'lucide-react';
@@ -26,11 +27,12 @@ import {
   EMPTY,
   FOCUS,
   MetricCard,
+  EmptyState,
   PageHeader,
   TD,
   TH,
   formatTimestamp,
-} from '../../components/operator/ui';
+} from '../../components/operator/Ui';
 
 // Aturan dan ketentuan tampil sejak awal; angka terdampak menyusul setelah validasi.
 const DEFAULT_FINDINGS = [
@@ -50,7 +52,7 @@ const DEFAULT_GATES = [
 const GATE_TONE = {
   Lulus: 'text-[#126552]',
   'Perlu perbaikan': 'text-[#85520c]',
-  Menunggu: 'text-[#445665]',
+  Menunggu: 'text-[#52605a]',
 };
 
 export default function OperatorValidation() {
@@ -92,7 +94,7 @@ export default function OperatorValidation() {
       label: 'Baris diperiksa',
       value: hasResult ? validation.totalRows : EMPTY,
       note: hasResult ? 'Dari validasi terakhir' : 'Belum tersedia',
-      accent: 'bg-[#1b4965]',
+      accent: 'bg-[#145646]',
     },
     {
       label: 'Lolos aturan',
@@ -110,13 +112,14 @@ export default function OperatorValidation() {
       label: 'Tanpa marker',
       value: hasResult ? validation.noMarkerRows : EMPTY,
       note: 'Koordinat kosong atau invalid',
-      accent: 'bg-[#2c6e8e]',
+      accent: 'bg-[#0f766e]',
     },
   ];
 
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-7">
       <PageHeader
+        art="validation"
         eyebrow="Langkah 3"
         title="Hasil validasi dataset"
         description="Tinjau aturan wajib dan pilih jalur perbaikan atau review."
@@ -128,7 +131,7 @@ export default function OperatorValidation() {
               disabled={isLoadingServer}
               className={`${BTN_OUTLINE} flex items-center gap-1.5`}
             >
-              <Database size={15} />
+              {isLoadingServer ? <GeoMark /> : <Database size={15} />}
               {isLoadingServer ? 'Memuat DB...' : 'Validasi Data DB'}
             </button>
             <button
@@ -165,7 +168,7 @@ export default function OperatorValidation() {
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_316px]">
         <section aria-labelledby="judul-temuan" className={`${CARD} min-w-0 p-[17px]`}>
           <h2 id="judul-temuan" className="text-base font-semibold leading-6">Temuan validasi</h2>
-          <p className="text-xs leading-[18px] text-[#445665]">
+          <p className="text-xs leading-[18px] text-[#52605a]">
             {hasResult
               ? `Hasil dari ${validation.fileName}, dijalankan ${formatTimestamp(validation.ranAt)}.`
               : 'Daftar aktual muncul setelah proses selesai.'}
@@ -189,7 +192,7 @@ export default function OperatorValidation() {
                 {findings.map((finding) => (
                   <tr key={finding.rule}>
                     <th scope="row" className={`${TD} text-sm font-semibold`}>{finding.rule}</th>
-                    <td className={`${TD} text-[#445665]`}>{finding.provision}</td>
+                    <td className={`${TD} text-[#52605a]`}>{finding.provision}</td>
                     <td
                       className={`${TD} text-base font-semibold ${
                         finding.affected === 0 ? 'text-[#126552]' : 'text-[#85520c]'
@@ -204,40 +207,40 @@ export default function OperatorValidation() {
           </div>
 
           {!hasResult && (
-            <div className="mt-5 flex flex-wrap items-center gap-3 rounded-lg bg-[#edf3f6] p-4">
-              <p className="min-w-[200px] flex-1 text-xs leading-[18px] text-[#445665]">
-                Belum ada hasil. Impor dan petakan dataset terlebih dahulu, atau jalankan validasi langsung terhadap data sekolah aktif di database PostgreSQL (PostGIS).
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleValidateServerData}
-                  disabled={isLoadingServer}
-                  className={`${BTN_PRIMARY} flex items-center gap-2`}
-                >
-                  <Database size={16} />
-                  {isLoadingServer ? 'Mengambil data dari DB...' : 'Validasi Data Server (617 Sekolah)'}
+            <EmptyState
+              art="validation"
+              className="mt-5"
+              title="Belum ada hasil validasi"
+              text="Impor dan petakan dataset terlebih dahulu, atau jalankan validasi langsung terhadap data sekolah aktif di database PostgreSQL (PostGIS)."
+            >
+              <button
+                type="button"
+                onClick={handleValidateServerData}
+                disabled={isLoadingServer}
+                className={`${BTN_PRIMARY} flex items-center gap-2`}
+              >
+                {isLoadingServer ? <GeoMark /> : <Database size={16} />}
+                {isLoadingServer ? 'Mengambil data dari DB...' : 'Validasi Data Server (617 Sekolah)'}
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate('/operator/dataset/impor')}
+                className={BTN_OUTLINE}
+              >
+                Ke halaman impor
                 </button>
-                <button
-                  type="button"
-                  onClick={() => navigate('/operator/dataset/impor')}
-                  className={BTN_OUTLINE}
-                >
-                  Ke halaman impor
-                </button>
-              </div>
-            </div>
+            </EmptyState>
           )}
         </section>
 
         <section aria-labelledby="judul-gerbang" className={`${CARD} p-[17px]`}>
           <h2 id="judul-gerbang" className="text-base font-semibold leading-6">Kriteria Kelulusan Data</h2>
-          <p className="text-xs text-[#445665]">Standar kualitas spasial & atribut sebelum sinkronisasi.</p>
+          <p className="text-xs text-[#52605a]">Standar kualitas spasial & atribut sebelum sinkronisasi.</p>
           <ul className="mt-4 flex flex-col gap-2.5">
             {gates.map((gate) => (
               <li
                 key={gate.name}
-                className="flex h-[62px] items-center gap-3 rounded-lg border border-[#d7e1e8] bg-[#f9fafb] px-[11px]"
+                className="flex h-[62px] items-center gap-3 rounded-lg border border-[#dde6e0] bg-[#f7faf8] px-[11px]"
               >
                 <ShieldCheck
                   size={18}
@@ -257,7 +260,7 @@ export default function OperatorValidation() {
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-3">
-        <p id="catatan-review" className="mr-auto text-xs leading-[18px] text-[#445665]">
+        <p id="catatan-review" className="mr-auto text-xs leading-[18px] text-[#52605a]">
           {hasResult && validation.needsFixRows > 0
             ? 'Masih ada baris yang perlu perbaikan. Pengajuan terkunci sampai semuanya lolos.'
             : 'Lengkapi provenance dan atribusi di halaman review sebelum mengajukan.'}

@@ -13,6 +13,7 @@ router.get('/coverage', c.coverage);
 router.get('/ringkasan', c.ringkasan);
 
 // Stakeholder & Operator
+router.post('/tanya-wilayah', ...staffOnly, require('../controllers/wilayahAssistant').ask);
 router.post('/hitung', ...staffOnly, c.recalculate);
 router.get('/intervensi', ...staffOnly, c.intervensi);
 router.get('/status', ...staffOnly, c.status);

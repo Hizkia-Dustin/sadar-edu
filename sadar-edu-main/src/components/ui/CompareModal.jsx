@@ -1,5 +1,7 @@
 import { useShallow } from "zustand/react/shallow";
 import { useMapStore } from "../../store/useMapStore";
+import { useDataStore } from "../../store/useDataStore";
+import { formatDistance, haversineKm } from "../../lib/geoDistance";
 
 export default function CompareModal() {
   const {
@@ -7,14 +9,26 @@ export default function CompareModal() {
     removeFromCompare,
     isCompareOpen,
     setIsCompareOpen,
+    userLocation,
   } = useMapStore(useShallow((state) => ({
     comparedSchools: state.comparedSchools,
     removeFromCompare: state.removeFromCompare,
     isCompareOpen: state.isCompareOpen,
     setIsCompareOpen: state.setIsCompareOpen,
+    userLocation: state.userLocation,
   })));
+  const sekolahFeatures = useDataStore((state) => state.sekolah?.features || []);
 
   if (!isCompareOpen) return null;
+
+  const distanceOf = (school) => {
+    if (!userLocation) return null;
+    const coords =
+      school.coords ||
+      sekolahFeatures.find((f) => String(f.properties?.id) === String(school.id))?.geometry?.coordinates;
+    if (!coords) return null;
+    return haversineKm([userLocation.lng, userLocation.lat], coords);
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
@@ -70,6 +84,19 @@ export default function CompareModal() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
+                {userLocation && (
+                  <tr className="bg-emerald-50/50">
+                    <td className="p-3 text-slate-600 font-semibold">Jarak dari Rumah</td>
+                    {comparedSchools.map((s) => {
+                      const d = distanceOf(s);
+                      return (
+                        <td key={s.id} className="p-3 font-bold text-[#1F6F5F]">
+                          {d != null ? formatDistance(d) : "-"}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                )}
                 <tr>
                   <td className="p-3 text-slate-500 font-medium">Status</td>
                   {comparedSchools.map((s) => (
