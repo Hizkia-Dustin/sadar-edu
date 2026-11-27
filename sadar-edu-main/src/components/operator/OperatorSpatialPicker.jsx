@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import Map, { Marker, NavigationControl, Source, Layer } from 'react-map-gl/mapbox';
 import { Check, MapPin, TriangleAlert } from 'lucide-react';
 import { BOGOR_BOUNDARY, isInBogor } from '../../lib/bogorBoundary';
-import { BTN_PRIMARY, BTN_OUTLINE } from './Ui';
+import { BTN_PRIMARY, BTN_OUTLINE } from './ui';
 
 const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
 

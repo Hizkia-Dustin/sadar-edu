@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useOperatorStore } from '../../store/useOperatorStore';
-import { Dialog, FOCUS, formatTimestamp } from './Ui';
+import { Dialog, FOCUS, formatTimestamp } from './ui';
 import logoSadar from '../../assets/figma/logo-sadar.svg';
 import './operator-shell.css';
 
