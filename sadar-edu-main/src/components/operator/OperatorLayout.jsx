@@ -1,11 +1,9 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
   BookOpen,
   ChartColumn,
-  ChevronLeft,
-  ChevronRight,
   Clock,
   Database,
   House,
@@ -17,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useOperatorStore } from '../../store/useOperatorStore';
-import { Dialog, FOCUS, formatTimestamp } from './ui';
+import { Dialog, FOCUS, formatTimestamp } from './Ui';
 import logoSadar from '../../assets/figma/logo-sadar.svg';
 import './operator-shell.css';
 
@@ -51,13 +49,22 @@ const matchesSearch = (value, query) => {
   return words.every((word) => text.includes(word));
 };
 
+function initials(name) {
+  return String(name ?? '')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toLocaleUpperCase('id-ID'))
+    .join('');
+}
+
 function BrandMark() {
   const [failed, setFailed] = useState(false);
 
   return (
-    <span className="flex h-[34px] w-[34px] shrink-0 items-center justify-center overflow-hidden rounded-[10px]">
+    <span className="op-brand__mark">
       {failed ? (
-        <span className="flex h-full w-full items-center justify-center bg-[#1b4965] text-white">
+        <span className="flex h-full w-full items-center justify-center bg-[#145646] text-white">
           <House size={18} aria-hidden="true" />
         </span>
       ) : (
@@ -80,7 +87,6 @@ export default function OperatorLayout() {
   const logout = useAuthStore((state) => state.logout);
   const versions = useOperatorStore((state) => state.versions);
   const activity = useOperatorStore((state) => state.activity);
-  const [collapsed, setCollapsed] = useState(() => window.innerWidth < 1024);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -115,10 +121,17 @@ export default function OperatorLayout() {
     return lastReadIndex === -1 ? activity.length : lastReadIndex;
   }, [activity, lastReadActivityId]);
 
-  // Di layar kecil, sidebar menutup sendiri setelah pindah halaman.
+  // Pindah halaman: tutup panel melayang dan gulir pil aktif ke tampilan (navigasi mobile bergulir).
+  const navRef = useRef(null);
   useEffect(() => {
-    if (window.innerWidth < 1024) setCollapsed(true);
+    const active = navRef.current?.querySelector('[aria-current="page"]');
+    active?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
   }, [pathname]);
+
+  // Di layar kecil input baru tampil saat dibuka, jadi fokuskan secara eksplisit.
+  useEffect(() => {
+    if (searchOpen) searchRef.current?.querySelector('input')?.focus();
+  }, [searchOpen]);
 
   useEffect(() => {
     if (!searchOpen) return undefined;
@@ -147,10 +160,6 @@ export default function OperatorLayout() {
     EXTRA_TITLES[pathname] ??
     NAV_ITEMS.find((item) => item.to === pathname)?.title ??
     'Ruang kerja operator';
-  const hide = collapsed ? 'sr-only' : '';
-  const itemShape = `relative flex h-[42px] items-center rounded-lg text-xs ${
-    collapsed ? 'justify-center' : 'gap-[13px] px-[14px]'
-  }`;
 
   const handleLogout = () => {
     logout();
@@ -200,130 +209,47 @@ export default function OperatorLayout() {
   };
 
   return (
-    <div className="operator-shell h-screen bg-[#edf3f6] p-3 text-[#173042] [font-family:'Public_Sans',system-ui,sans-serif] sm:p-6">
-      <div className="flex h-full min-h-0 overflow-hidden rounded-[20px] border border-[#d7e1e8] bg-white shadow-[0_12px_30px_rgba(10,36,51,0.1)] sm:rounded-[28px]">
-        <aside
-          className={`flex shrink-0 flex-col overflow-y-auto border-r border-[#d7e1e8] bg-white transition-[width] duration-200 motion-reduce:transition-none ${
-            collapsed ? 'w-[76px]' : 'w-[230px]'
-          }`}
-        >
-          <div
-            className={`flex pt-[22px] ${
-              collapsed ? 'flex-col items-center gap-3' : 'items-start justify-between px-[22px]'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
+    <div className="operator-shell">
+      <div className="op-frame">
+        <header className="op-topbar">
+          <div className="op-topbar__row">
+            <NavLink to="/operator/dashboard" className={`op-brand ${FOCUS}`} aria-label="SADAR EDU, ke ringkasan operator">
               <BrandMark />
-              <span className={`text-base font-semibold leading-6 text-[#1b4965] ${hide}`}>
-                SADAR EDU
+              <span className="op-brand__text">
+                <span className="op-brand__name">SADAR EDU</span>
+                <span className="op-brand__role">Operator data</span>
               </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setCollapsed((value) => !value)}
-              aria-expanded={!collapsed}
-              aria-label={collapsed ? 'Buka sidebar' : 'Tutup sidebar'}
-              className={`flex h-7 w-7 shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#d7e1e8] bg-[#edf3f6] text-[#445665] transition-colors hover:bg-[#e1eaee] ${FOCUS}`}
-            >
-              {collapsed ? (
-                <ChevronRight size={18} aria-hidden="true" />
-              ) : (
-                <ChevronLeft size={18} aria-hidden="true" />
-              )}
-            </button>
-          </div>
+            </NavLink>
 
-          <p className={`mt-[26px] px-[22px] text-[11px] font-medium leading-4 text-[#445665] ${hide}`}>
-            MENU
-          </p>
-          <nav
-            aria-label="Menu operator"
-            className={`mt-3 flex flex-col gap-2 ${collapsed ? 'px-3' : 'px-5'}`}
-          >
-            {NAV_ITEMS.map(({ label, to, icon: Icon }) =>
-              to ? (
+            <nav ref={navRef} aria-label="Menu operator" className="op-nav">
+              {NAV_ITEMS.map(({ label, to, icon: Icon }) => (
                 <NavLink
                   key={label}
                   to={to}
-                  title={collapsed ? label : undefined}
-                  className={({ isActive }) =>
-                    `${itemShape} ${FOCUS} ${
-                      isActive
-                        ? 'bg-[#e8f3f0] text-[#1b4965] before:absolute before:left-0 before:top-0 before:h-full before:w-1 before:rounded-sm before:bg-[#3fa796]'
-                        : 'text-[#445665] hover:bg-[#edf3f6]'
-                    }`
-                  }
+                  className={({ isActive }) => `op-nav__item ${isActive ? 'is-active' : ''} ${FOCUS}`}
                 >
-                  <Icon size={17} aria-hidden="true" className="shrink-0" />
-                  <span className={hide}>{label}</span>
+                  <Icon size={16} aria-hidden="true" className="shrink-0" />
+                  <span>{label}</span>
                 </NavLink>
-              ) : (
-                <button
-                  key={label}
-                  type="button"
-                  disabled
-                  title="Segera hadir"
-                  className={`${itemShape} w-full cursor-not-allowed text-left text-[#445665] opacity-70`}
-                >
-                  <Icon size={17} aria-hidden="true" className="shrink-0" />
-                  <span className={hide}>{label}</span>
-                  <span className="sr-only">, segera hadir</span>
-                </button>
-              )
-            )}
-          </nav>
+              ))}
+            </nav>
 
-          <div className={`mt-auto pb-4 pt-8 ${collapsed ? 'px-3' : 'px-5'}`}>
-            <p className={`px-0.5 text-[11px] font-medium leading-4 text-[#445665] ${hide}`}>AKUN</p>
-            <div className="my-3 h-px bg-[#d7e1e8]" />
-            <button
-              type="button"
-              onClick={handleLogout}
-              aria-label={collapsed ? 'Keluar dari akun' : undefined}
-              className={`flex h-[46px] w-full cursor-pointer items-center rounded-lg border border-[#a12b31] bg-[#fff0f0] text-sm font-semibold text-[#a12b31] transition-colors hover:bg-[#ffe3e3] active:bg-[#ffd6d6] ${
-                collapsed ? 'justify-center' : 'gap-3.5 px-[13px]'
-              } ${FOCUS}`}
-            >
-              <LogOut size={20} aria-hidden="true" className="shrink-0" />
-              <span className={hide}>Keluar dari akun</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setGuideOpen(true)}
-              title="Buka panduan operator"
-              className={`mt-3 flex h-10 w-full cursor-pointer items-center text-xs text-[#445665] hover:text-[#173042] ${
-                collapsed ? 'justify-center' : 'gap-2.5 px-3'
-              } ${FOCUS}`}
-            >
-              <BookOpen size={16} aria-hidden="true" className="shrink-0" />
-              <span className={hide}>Panduan operator</span>
-            </button>
-          </div>
-        </aside>
-
-        <div className="flex min-w-0 flex-1 flex-col">
-          <header className="flex h-[76px] shrink-0 items-center gap-3 border-b border-[#d7e1e8] bg-white px-4 sm:px-7">
-            <p
-              className={`truncate text-xl font-semibold leading-7 ${
-                searchOpen ? 'hidden md:mr-auto md:block' : 'mr-auto'
-              }`}
-            >
-              {pageTitle}
-            </p>
+            <div className="op-topbar__tools">
+            <p className="sr-only" aria-live="polite">{pageTitle}</p>
 
             <div
               ref={searchRef}
               className={`relative ${
                 searchOpen
-                  ? 'min-w-0 flex-1 md:w-[300px] md:flex-none'
-                  : 'hidden md:block'
+                  ? 'op-search is-open'
+                  : 'op-search'
               }`}
             >
               <label htmlFor="cari-menu" className="sr-only">Cari menu atau data</label>
               <Search
                 size={18}
                 aria-hidden="true"
-                className="pointer-events-none absolute left-[13px] top-1/2 -translate-y-1/2 text-[#445665]"
+                className="pointer-events-none absolute left-[13px] top-1/2 -translate-y-1/2 text-[#52605a]"
               />
               <input
                 id="cari-menu"
@@ -340,15 +266,15 @@ export default function OperatorLayout() {
                 onKeyDown={handleSearchKeyDown}
                 aria-expanded={searchOpen}
                 aria-controls="hasil-pencarian-operator"
-                className={`h-[42px] w-full rounded-lg border border-[#d7e1e8] bg-[#f9fafb] pl-[43px] pr-3 text-xs placeholder:text-[#445665] md:w-[300px] ${FOCUS}`}
+                className={`op-search__input ${FOCUS}`}
               />
               {searchOpen && (
                 <div
                   id="hasil-pencarian-operator"
-                  className="absolute left-0 right-auto top-[48px] z-40 max-h-[min(70vh,460px)] w-full overflow-y-auto rounded-xl border border-[#d7e1e8] bg-white p-2 shadow-[0_12px_30px_rgba(10,36,51,0.16)] md:left-auto md:right-0 md:w-[min(380px,calc(100vw-32px))]"
+                  className="op-popover op-popover--search"
                 >
                   {!searchQuery.trim() ? (
-                    <p className="px-3 py-4 text-xs text-[#445665]">
+                    <p className="px-3 py-4 text-xs text-[#52605a]">
                       Ketik untuk mencari menu, dataset, atau aktivitas.
                     </p>
                   ) : (
@@ -392,7 +318,7 @@ export default function OperatorLayout() {
                       {searchResults.pages.length === 0 &&
                         searchResults.datasets.length === 0 &&
                         searchResults.activities.length === 0 && (
-                          <p className="px-3 py-4 text-xs text-[#445665]">
+                          <p className="px-3 py-4 text-xs text-[#52605a]">
                             Tidak ada menu, dataset, atau aktivitas yang cocok.
                           </p>
                         )}
@@ -415,7 +341,7 @@ export default function OperatorLayout() {
               }}
               aria-label={searchOpen ? 'Tutup pencarian' : 'Cari menu atau data'}
               aria-expanded={searchOpen}
-              className={`flex h-[42px] w-[42px] shrink-0 cursor-pointer items-center justify-center rounded-lg border border-[#d7e1e8] bg-white text-[#445665] hover:bg-[#edf3f6] md:hidden ${FOCUS}`}
+              className={`op-icon-btn op-search-toggle ${FOCUS}`}
             >
               {searchOpen ? <X size={18} aria-hidden="true" /> : <Search size={18} aria-hidden="true" />}
             </button>
@@ -428,13 +354,13 @@ export default function OperatorLayout() {
                 aria-expanded={notificationsOpen}
                 aria-controls="notifikasi-operator"
                 title="Notifikasi aktivitas operator"
-                className={`relative flex h-[42px] w-[42px] cursor-pointer items-center justify-center rounded-lg border border-[#d7e1e8] bg-white text-[#445665] hover:bg-[#edf3f6] ${FOCUS}`}
+                className={`op-icon-btn ${FOCUS}`}
               >
                 <Bell size={18} aria-hidden="true" />
                 {unreadCount > 0 && (
                   <span
                     aria-hidden="true"
-                    className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-[#a12b31] px-1 text-[10px] font-bold text-white"
+                    className="op-badge"
                   >
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </span>
@@ -443,16 +369,16 @@ export default function OperatorLayout() {
               {notificationsOpen && (
                 <div
                   id="notifikasi-operator"
-                  className="absolute right-0 top-[50px] z-40 w-[min(360px,calc(100vw-32px))] rounded-xl border border-[#d7e1e8] bg-white p-3 shadow-[0_12px_30px_rgba(10,36,51,0.16)]"
+                  className="op-popover op-popover--notif"
                 >
                   <div className="flex items-center justify-between gap-3 px-1 pb-2">
                     <h2 className="text-sm font-semibold">Notifikasi aktivitas</h2>
-                    <span className="text-[11px] text-[#445665]">
+                    <span className="text-[11px] text-[#52605a]">
                       {unreadCount > 0 ? `${unreadCount} baru` : 'Sudah dibaca'}
                     </span>
                   </div>
                   {activity.length === 0 ? (
-                    <p className="px-2 py-5 text-center text-xs text-[#445665]">
+                    <p className="px-2 py-5 text-center text-xs text-[#52605a]">
                       Belum ada aktivitas. Simpan draf, jalankan validasi, atau ajukan dataset untuk membuat notifikasi.
                     </p>
                   ) : (
@@ -462,10 +388,10 @@ export default function OperatorLayout() {
                           <button
                             type="button"
                             onClick={() => openActivity(item)}
-                            className={`w-full rounded-lg px-3 py-2 text-left hover:bg-[#edf3f6] ${FOCUS}`}
+                            className={`w-full rounded-lg px-3 py-2 text-left hover:bg-[#eef4f0] ${FOCUS}`}
                           >
-                            <span className="block text-xs font-semibold leading-5 text-[#173042]">{item.text}</span>
-                            <span className="mt-0.5 block text-[11px] text-[#445665]">
+                            <span className="block text-xs font-semibold leading-5 text-[#132a25]">{item.text}</span>
+                            <span className="mt-0.5 block text-[11px] text-[#52605a]">
                               {item.stage} · {formatTimestamp(item.at)}
                             </span>
                           </button>
@@ -479,7 +405,7 @@ export default function OperatorLayout() {
                       navigate('/operator/dashboard');
                       setNotificationsOpen(false);
                     }}
-                    className={`mt-2 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#1b4965] hover:bg-[#edf3f6] ${FOCUS}`}
+                    className={`mt-2 w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-[#145646] hover:bg-[#eef4f0] ${FOCUS}`}
                   >
                     Lihat semua aktivitas
                   </button>
@@ -487,26 +413,41 @@ export default function OperatorLayout() {
               )}
             </div>
 
-            <div className="flex h-[50px] items-center gap-3 rounded-[10px] bg-[#edf3f6] pl-2 pr-4">
-              <span
-                aria-hidden="true"
-                className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-[#1b4965] text-white"
-              >
-                <User size={18} />
-              </span>
-              <span className="hidden sm:block">
-                <span className="block text-xs leading-[18px]">{user?.name ?? 'Operator data'}</span>
-                <span className="block text-[11px] font-medium leading-4 text-[#445665]">
-                  Ruang kerja internal
-                </span>
-              </span>
-            </div>
-          </header>
+            <button
+              type="button"
+              onClick={() => setGuideOpen(true)}
+              aria-label="Buka panduan operator"
+              title="Panduan operator"
+              className={`op-icon-btn ${FOCUS}`}
+            >
+              <BookOpen size={18} aria-hidden="true" />
+            </button>
 
-          <main data-lenis-prevent className="min-h-0 flex-1 overflow-y-auto bg-[#f9fafb]">
-            <Outlet />
-          </main>
-        </div>
+            <div className="op-user">
+              <span aria-hidden="true" className="op-user__avatar">
+                {initials(user?.nama ?? user?.name) || <User size={16} />}
+              </span>
+              <span className="op-user__text">
+                <span className="op-user__name">{user?.nama ?? user?.name ?? 'Operator data'}</span>
+                <span className="op-user__role">Ruang kerja internal</span>
+              </span>
+              <button
+                type="button"
+                onClick={handleLogout}
+                aria-label="Keluar dari akun"
+                title="Keluar dari akun"
+                className={`op-user__logout ${FOCUS}`}
+              >
+                <LogOut size={16} aria-hidden="true" />
+              </button>
+            </div>
+            </div>
+          </div>
+        </header>
+
+        <main data-lenis-prevent className="op-main">
+          <Outlet />
+        </main>
       </div>
       {guideOpen && (
         <Dialog
@@ -515,7 +456,7 @@ export default function OperatorLayout() {
           focusRef={guideCloseRef}
           wide
         >
-          <p className="mt-2 text-xs leading-5 text-[#445665]">
+          <p className="mt-2 text-xs leading-5 text-[#52605a]">
             Ikuti alur ini untuk memperbarui dataset sekolah. Perubahan aktivitas akan muncul di lonceng notifikasi.
           </p>
           <ol className="mt-5 space-y-3">
@@ -526,13 +467,13 @@ export default function OperatorLayout() {
               ['Lengkapi metadata', 'Di Status pengajuan, isi sumber, periode, cakupan, dan lisensi dataset.'],
               ['Ajukan pembaruan', 'Setelah semua gerbang terpenuhi, kirim untuk ditinjau dan pantau statusnya di halaman pengajuan.'],
             ].map(([title, text], index) => (
-              <li key={title} className="flex gap-3 rounded-lg border border-[#d7e1e8] bg-[#f9fafb] p-3">
+              <li key={title} className="flex gap-3 rounded-lg border border-[#dde6e0] bg-[#f7faf8] p-3">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e8f3f0] text-xs font-bold text-[#126552]">
                   {index + 1}
                 </span>
                 <span>
                   <span className="block text-sm font-semibold">{title}</span>
-                  <span className="mt-1 block text-xs leading-5 text-[#445665]">{text}</span>
+                  <span className="mt-1 block text-xs leading-5 text-[#52605a]">{text}</span>
                 </span>
               </li>
             ))}
@@ -542,7 +483,7 @@ export default function OperatorLayout() {
               ref={guideCloseRef}
               type="button"
               onClick={() => setGuideOpen(false)}
-              className={`h-10 rounded-lg border border-[#d7e1e8] px-4 text-xs font-semibold hover:bg-[#edf3f6] ${FOCUS}`}
+              className={`h-10 rounded-lg border border-[#dde6e0] px-4 text-xs font-semibold hover:bg-[#eef4f0] ${FOCUS}`}
             >
               Tutup
             </button>
@@ -552,7 +493,7 @@ export default function OperatorLayout() {
                 navigate('/operator/dataset');
                 setGuideOpen(false);
               }}
-              className={`h-10 rounded-lg bg-[#1b4965] px-4 text-xs font-semibold text-white hover:bg-[#153a52] ${FOCUS}`}
+              className={`h-10 rounded-lg bg-[#145646] px-4 text-xs font-semibold text-white hover:bg-[#0f4337] ${FOCUS}`}
             >
               Mulai dari dataset
             </button>
@@ -566,7 +507,7 @@ export default function OperatorLayout() {
 function SearchResultGroup({ title, children }) {
   return (
     <section className="mb-1 last:mb-0">
-      <h2 className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-[#445665]">{title}</h2>
+      <h2 className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-[#52605a]">{title}</h2>
       <ul>{children}</ul>
     </section>
   );
@@ -578,10 +519,10 @@ function SearchResult({ label, detail, onClick }) {
       <button
         type="button"
         onClick={onClick}
-        className={`w-full rounded-lg px-3 py-2 text-left hover:bg-[#edf3f6] ${FOCUS}`}
+        className={`w-full rounded-lg px-3 py-2 text-left hover:bg-[#eef4f0] ${FOCUS}`}
       >
-        <span className="block truncate text-xs font-semibold text-[#173042]">{label}</span>
-        <span className="mt-0.5 block truncate text-[11px] text-[#445665]">{detail}</span>
+        <span className="block truncate text-xs font-semibold text-[#132a25]">{label}</span>
+        <span className="mt-0.5 block truncate text-[11px] text-[#52605a]">{detail}</span>
       </button>
     </li>
   );

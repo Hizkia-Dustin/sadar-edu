@@ -119,17 +119,8 @@
 .explorer-detail-actions button { width: 100%; min-height: 42px; border: 1px solid #bdcec7; color: #1f6f5f; border-radius: 8px; font-size: 12px; font-weight: 600; transition: background-color 160ms; }
 .explorer-detail-actions button:hover:not(:disabled) { background: #edf5f0; }
 .explorer-detail-actions button:disabled { background: #f4f6f5; color: #738078; border-color: #e0e6e2; }
-.explorer .school-preview-popup .mapboxgl-popup-content { padding: 18px 16px 12px; border: 1px solid #e0e5e9; border-radius: 10px; box-shadow: 0 5px 20px #142c3d1a; font-family: inherit; }
-.explorer .school-preview-popup .mapboxgl-popup-close-button { top: 4px; right: 4px; width: 28px; height: 28px; color: #76838e; font-size: 20px; border-radius: 6px; }
-.school-preview { min-width: 220px; animation: explorer-content-enter 160ms ease-out both; }
-.school-preview h3 { padding-right: 20px; font-size: 14px; font-weight: 600; line-height: 1.4; color: #26343d; margin: 0; }
-.school-preview p { margin: 7px 0 14px; font-size: 11px; line-height: 1.5; color: #647380; }
-.school-preview-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; border-top: 1px solid #edf0f3; }
-.school-preview-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 36px; font-size: 11px; border-radius: 5px; padding: 4px 3px; transition: background-color 150ms, color 150ms; }
-.school-preview-profile { color: #1f6f5f; font-weight: 600; }
-.school-preview-compare { color: #61717c; }
-.school-preview-actions button:hover:not(:disabled) { background: #f0f5f3; }
-.school-preview-actions button:disabled { color: #8b969d; cursor: default; }
+.explorer .school-preview-popup .mapboxgl-popup-content { padding: 16px 16px 12px; }
+.school-preview { min-width: 224px; animation: explorer-content-enter 160ms ease-out both; }
 @media (max-width:767px) { .school-preview-actions button { min-height: 40px; } }
 @media (prefers-reduced-motion: reduce) {
  .explorer *, .explorer *::before, .explorer *::after { animation: none !important; transition: none !important; }
@@ -168,3 +159,602 @@
 .district-hover-tooltip p { margin: 3px 0 10px; font-size: 11px; color: #647380; }
 .district-hover-tooltip b { display: block; color: #173f35; font-size: 18px; font-weight: 600; line-height: 1.3; }
 .district-hover-tooltip small { display: block; margin-top: 4px; font-size: 10px; color: #647380; }
+
+
+/* === Peta Publik Orang Tua & Siswa: Lokasi Rumah, Radius & Filter Inline === */
+.explorer-home-box {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid #d7e4df;
+  border-radius: 12px;
+  background: #f5faf8;
+}
+.explorer-home-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #214e42;
+  margin-bottom: 8px;
+}
+.explorer-home-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.explorer-home-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #c5d9d1;
+  background: #ffffff;
+  color: #1c4a3e;
+  transition: background-color 150ms, border-color 150ms, color 150ms;
+}
+.explorer-home-btn:hover:not(:disabled) { background: #e8f4ef; border-color: #8cbcae; }
+.explorer-home-btn.is-primary { background: #1f6f5f; border-color: #1f6f5f; color: #ffffff; }
+.explorer-home-btn.is-primary:hover:not(:disabled) { background: #175649; }
+.explorer-home-btn.is-picking { background: #0f172a; border-color: #0f172a; color: #ffffff; }
+.explorer-home-notice {
+  margin-top: 7px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #b45309;
+}
+
+.explorer-home-active {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.explorer-home-active-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.explorer-home-active-top strong {
+  display: block;
+  font-size: 12.5px;
+  color: #14532d;
+}
+.explorer-home-active.is-blank .explorer-home-active-top strong {
+  color: #b45309;
+}
+.explorer-home-active-top p {
+  font-size: 11px;
+  color: #475569;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.explorer-home-clear {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: #64748b;
+  flex-shrink: 0;
+}
+.explorer-home-clear:hover { background: #e2ebe7; color: #0f172a; }
+
+.explorer-radius-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.explorer-radius-row button {
+  padding: 4px 8px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #cfe0d9;
+  background: #ffffff;
+  color: #334155;
+  transition: all 140ms;
+}
+.explorer-radius-row button[aria-pressed="true"] {
+  background: #1f6f5f;
+  border-color: #1f6f5f;
+  color: #ffffff;
+}
+.explorer-radius-row .explorer-repin-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #1f6f5f;
+  background: transparent;
+  border-color: transparent;
+}
+.explorer-radius-row .explorer-repin-btn:hover { background: #e6f2ed; }
+
+.explorer-inline-filters {
+  margin-top: 10px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.explorer-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.explorer-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 1px solid #d8deea;
+  background: #ffffff;
+  color: #475569;
+  transition: all 140ms;
+}
+.explorer-filter-chip:hover { background: #f8fafc; color: #0f172a; }
+.explorer-filter-chip.is-active {
+  background: #132a25;
+  border-color: #132a25;
+  color: #ffffff;
+}
+.explorer-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.explorer-dot.is-negeri { background: #0f766e; }
+.explorer-dot.is-swasta { background: #d97706; }
+
+.explorer-district-select-wrap {
+  position: relative;
+}
+.explorer-district-select-wrap select {
+  width: 100%;
+  padding: 7px 30px 7px 10px;
+  border: 1px solid #d8deea;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  background: #ffffff;
+  appearance: none;
+  cursor: pointer;
+}
+.explorer-select-caret {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+}
+
+.explorer-school-icon.is-negeri { background: #e8f5f0; color: #0f766e; }
+.explorer-school-icon.is-swasta { background: #fef3e2; color: #b45309; }
+.explorer-school-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+.explorer-distance-badge {
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #e6f4ef;
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 700;
+}
+.explorer-school-travel {
+  display: block;
+  font-size: 11px;
+  color: #0f766e;
+  margin-top: 2px;
+  font-weight: 500;
+}
+.explorer-ppdb-note {
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: #64748b;
+  padding: 8px 4px 2px;
+}
+
+/* Detail Sekolah: Jarak & Tombol Rute */
+.explorer-detail-distance {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #edf7f3;
+  border: 1px solid #c3e2d7;
+}
+.explorer-detail-distance strong {
+  display: block;
+  font-size: 13px;
+  color: #0f5132;
+}
+.explorer-detail-distance span {
+  display: block;
+  font-size: 11px;
+  color: #3c6e5e;
+  margin-top: 2px;
+}
+.explorer-detail-btn-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 8px;
+}
+.explorer-detail-btn-row .explorer-detail-focus {
+  justify-content: center;
+  text-decoration: none;
+}
+.explorer-detail-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 600;
+}
+.explorer-detail-secondary:hover { background: #f8fafc; }
+
+/* Banner Mode Pilih Lokasi di Peta */
+.explorer-pick-banner {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 35;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: #0f172a;
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.28);
+  white-space: nowrap;
+}
+.explorer-pick-banner button {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.explorer-pick-banner button:hover { background: rgba(255, 255, 255, 0.28); }
+
+/* Popover Tampilan Peta Ringan (Pojok Kanan) */
+.explorer-layers-popover {
+  position: absolute;
+  top: 188px;
+  right: 72px;
+  z-index: 28;
+  width: 248px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #dce1eb;
+  box-shadow: 0 12px 30px rgba(15, 36, 30, 0.14);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.explorer-layers-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1e293b;
+}
+.explorer-layers-popover-head button {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #64748b;
+}
+.explorer-layers-popover-head button:hover { background: #f1f5f9; }
+.explorer-layers-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.explorer-layers-option:hover { background: #f8fafc; }
+.explorer-layers-option p {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+}
+.explorer-layers-option small {
+  display: block;
+  font-size: 10.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+.explorer-layers-option input {
+  width: 16px;
+  height: 16px;
+  accent-color: #1f6f5f;
+  flex-shrink: 0;
+}
+.explorer-layers-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 6px;
+  border-top: 1px solid #edf2f7;
+  font-size: 11px;
+  color: #475569;
+}
+.explorer-layers-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.explorer-layers-legend i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* Pin Rumah Pengguna di Peta (Draggable) */
+.user-home-pin {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: grab;
+}
+.user-home-pin:active { cursor: grabbing; }
+.user-home-pin-pulse {
+  position: absolute;
+  top: -4px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(15, 118, 110, 0.24);
+  animation: home-pin-pulse 2s infinite ease-out;
+  pointer-events: none;
+}
+.user-home-pin-head {
+  position: relative;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #0f766e;
+  color: #ffffff;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.28);
+  display: grid;
+  place-items: center;
+}
+.user-home-pin-tip {
+  width: 0;
+  height: 0;
+  margin-top: -2px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #0f766e;
+}
+@keyframes home-pin-pulse {
+  0% { transform: scale(0.75); opacity: 0.9; }
+  100% { transform: scale(1.75); opacity: 0; }
+}
+.school-preview-distance {
+  margin: -8px 0 10px !important;
+  color: #0f766e !important;
+  font-weight: 700;
+}
+
+@media (max-width: 767px) {
+  .explorer-pick-banner {
+    top: 66px;
+    font-size: 11.5px;
+    padding: 8px 12px;
+  }
+  .explorer-layers-popover {
+    top: 173px;
+    right: 64px;
+  }
+}
+
+/* =====================================================================
+   Pengalaman Peta Interaktif: panel kaca melayang, legenda,
+   vignette, dan animasi masuk agar halaman terasa map-first.
+   ===================================================================== */
+.explorer {
+  --glass: rgba(255, 255, 255, 0.82);
+  --glass-strong: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-shadow: 0 10px 34px rgba(16, 42, 36, 0.16), 0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  --ink: #132a25;
+  --accent: #0f766e;
+  background: #dfe8e2;
+}
+
+/* Peta masuk perlahan dari blur, terasa seperti membuka peta */
+@keyframes explorer-map-reveal {
+  from { opacity: 0; filter: blur(6px) saturate(.8); transform: scale(1.015); }
+  to { opacity: 1; filter: none; transform: none; }
+}
+@keyframes explorer-float-in-left { from { opacity: 0; transform: translateX(-18px); } to { opacity: 1; transform: none; } }
+@keyframes explorer-float-in-top { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
+@keyframes explorer-float-in-center { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translateX(-50%); } }
+@keyframes explorer-float-in-bottom { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translateX(-50%); } }
+
+/* backwards (bukan both) agar setelah animasi peta tidak membentuk stacking context permanen */
+.explorer-map { animation: explorer-map-reveal 700ms cubic-bezier(.22,1,.36,1) backwards; }
+.explorer .mapboxgl-marker, .explorer .mapboxgl-popup { z-index: 3; }
+
+/* Vignette tipis di tepi peta agar panel melayang terasa punya kedalaman */
+.explorer-map-vignette {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    linear-gradient(to bottom, rgba(19, 42, 37, .16), transparent 120px),
+    linear-gradient(to top, rgba(19, 42, 37, .12), transparent 110px),
+    radial-gradient(ellipse at center, transparent 62%, rgba(19, 42, 37, .14) 100%);
+  transition: box-shadow 200ms;
+}
+
+/* Navigasi & tombol masuk: kapsul kaca */
+.explorer-floating-nav, .explorer-floating-login {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  color: var(--ink);
+  animation: explorer-float-in-top 480ms 120ms cubic-bezier(.22,1,.36,1) both;
+}
+.explorer-floating-nav .is-active { background: var(--ink); box-shadow: 0 4px 12px rgba(19, 42, 37, .3); }
+.explorer-floating-login:hover { background: var(--glass-strong); }
+
+/* Panel pencarian: kaca melayang di atas peta */
+.explorer-panel { animation: explorer-float-in-left 520ms 160ms cubic-bezier(.22,1,.36,1) both; }
+.explorer-panel.is-closed { animation: none; }
+.explorer-panel-inner {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  box-shadow: var(--glass-shadow);
+}
+.explorer-search-head h1 { border-bottom-color: rgba(19, 42, 37, .08); color: var(--ink); }
+.explorer-search-head h1 > svg { color: var(--accent); }
+.explorer-home-box { background: linear-gradient(135deg, rgba(232, 245, 240, .9), rgba(245, 250, 248, .7)); border-color: rgba(15, 118, 110, .18); }
+.explorer-inline-filters { border-bottom-color: rgba(19, 42, 37, .08); }
+.explorer-results-view > .p-3 { background: rgba(248, 250, 249, .6) !important; border-top-color: rgba(19, 42, 37, .07) !important; }
+.explorer-detail-bar, .explorer-detail-actions { border-color: rgba(19, 42, 37, .08); background: transparent; }
+
+/* Kartu sekolah: strip warna status + respons hover yang menyambung ke peta */
+.explorer-school {
+  position: relative; overflow: hidden;
+  background: rgba(255, 255, 255, .78);
+  border-color: rgba(19, 42, 37, .09);
+  transition: border-color 160ms, background-color 160ms, transform 180ms cubic-bezier(.22,1,.36,1), box-shadow 180ms;
+}
+.explorer-school::before {
+  content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 0 3px 3px 0;
+  background: #94a3b8; opacity: .55; transition: opacity 160ms, top 160ms, bottom 160ms;
+}
+.explorer-school.is-negeri::before { background: #0f766e; }
+.explorer-school.is-swasta::before { background: #d97706; }
+.explorer-school:hover, .explorer-school:focus-within {
+  background: #fff; border-color: rgba(15, 118, 110, .35);
+  transform: translateX(3px);
+  box-shadow: 0 6px 18px rgba(16, 42, 36, .1);
+}
+.explorer-school:hover::before, .explorer-school:focus-within::before { opacity: 1; top: 0; bottom: 0; }
+.explorer-school-focus { border-color: rgba(15, 118, 110, .35); color: var(--accent); }
+.explorer-school-focus:hover { background: var(--accent); color: #fff; }
+
+/* Kontrol zoom & alat peta: satu gaya kapsul kaca */
+.explorer .mapboxgl-ctrl-group, .explorer-map-tools {
+  background: var(--glass) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow) !important;
+}
+.explorer .mapboxgl-ctrl-group button:hover, .explorer-map-tools button:hover { background: rgba(15, 118, 110, .1) !important; }
+.explorer .mapboxgl-ctrl-group button + button, .explorer-map-tools button + button { border-color: rgba(19, 42, 37, .08) !important; }
+.explorer .mapboxgl-ctrl-top-right, .explorer-map-tools { animation: explorer-float-in-top 480ms 260ms cubic-bezier(.22,1,.36,1) both; }
+
+/* Legenda + petunjuk interaksi (bawah tengah) */
+.explorer-map-legend {
+  position: absolute; left: 50%; bottom: 26px; z-index: 18;
+  transform: translateX(-50%);
+  display: inline-flex; align-items: center; gap: 14px;
+  padding: 8px 10px 8px 16px; border-radius: 999px;
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  font-size: 11.5px; font-weight: 600; color: #334155; white-space: nowrap;
+  transition: left 280ms cubic-bezier(.22,1,.36,1);
+  animation: explorer-float-in-bottom 520ms 320ms cubic-bezier(.22,1,.36,1) both;
+}
+.explorer.panel-open .explorer-map-legend { left: calc(50% + 195px); }
+.explorer-map-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+.explorer-map-legend i { display: inline-grid; place-items: center; width: 10px; height: 10px; border-radius: 50%; font-style: normal; }
+.explorer-map-legend i.is-negeri { background: #0f766e; box-shadow: 0 0 0 3px rgba(15, 118, 110, .18); }
+.explorer-map-legend i.is-swasta { background: #d97706; box-shadow: 0 0 0 3px rgba(217, 119, 6, .18); }
+.explorer-map-legend i.is-cluster { width: 20px; height: 20px; background: #1f6f5f; color: #fff; font-size: 9px; font-weight: 700; border: 2px solid #fff; box-shadow: 0 0 0 3px rgba(31, 111, 95, .18); }
+.explorer-map-legend i.is-radius { width: 14px; height: 14px; border: 2px dashed #0f766e; background: rgba(15, 118, 110, .1); }
+.explorer-map-hint {
+  gap: 5px !important; padding: 5px 6px 5px 10px; margin-left: 2px;
+  border-radius: 999px; background: rgba(19, 42, 37, .07); color: #475569; font-weight: 500;
+}
+.explorer-map-hint svg { color: var(--accent); }
+.explorer-map-hint svg + svg { margin-left: 6px; }
+.explorer-map-hint button { display: grid; place-items: center; width: 20px; height: 20px; margin-left: 2px; border-radius: 50%; color: #64748b; }
+.explorer-map-hint button:hover { background: rgba(19, 42, 37, .1); }
+
+/* Popover lapisan, banner pilih titik: kaca yang sama */
+.explorer-layers-popover {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  border-radius: 18px;
+  animation: explorer-float-in-top 220ms cubic-bezier(.22,1,.36,1) both;
+}
+.explorer-layers-option { background: rgba(255, 255, 255, .6); border-color: rgba(19, 42, 37, .08); }
+.explorer-pick-banner { top: 18px; background: rgba(15, 23, 42, .86); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); animation: explorer-float-in-center 260ms cubic-bezier(.22,1,.36,1) both; }
+
+/* Popup sekolah di peta: kartu kaca dengan ujung panah serasi */
+.explorer .mapboxgl-popup-content {
+  background: var(--glass-strong);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgba(16, 42, 36, .2);
+}
+.explorer .mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip { border-top-color: var(--glass-strong); }
+.explorer .mapboxgl-popup-anchor-top .mapboxgl-popup-tip { border-bottom-color: var(--glass-strong); }
+.explorer .mapboxgl-popup-close-button { top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; font-size: 16px; color: #64748b; }
+.explorer .mapboxgl-popup-close-button:hover { background: rgba(19, 42, 37, .08); }
+.explorer .school-preview-profile { background: var(--accent); color: #fff !important; padding: 4px 12px !important; }
+.explorer .school-preview-profile:hover:not(:disabled) { background: #115e59 !important; }
+
+/* Mode pilih titik: peta diberi bingkai aktif */
+.explorer:has(.explorer-pick-banner) .explorer-map-vignette {
+  box-shadow: inset 0 0 0 3px rgba(15, 118, 110, .7), inset 0 0 60px rgba(15, 118, 110, .25);
+}
+
+@media (max-width: 1180px) {
+  .explorer-map-hint { display: none !important; }
+}
+@media (max-width: 767px) {
+  .explorer-panel { animation-name: explorer-float-in-top; }
+  .explorer-panel-inner { border-radius: 22px 22px 0 0; }
+  .explorer.panel-open .explorer-map-legend { display: none; }
+  .explorer-map-legend { left: 50%; bottom: 18px; gap: 10px; padding: 7px 12px; font-size: 10.5px; }
+  .explorer-school:hover, .explorer-school:focus-within { transform: none; }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .explorer { --glass: rgba(255, 255, 255, .97); --glass-strong: #fff; }
+}

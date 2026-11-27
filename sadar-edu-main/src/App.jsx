@@ -1,12 +1,13 @@
-import { useState, lazy, Suspense } from "react";
+import { lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import RequireRole from "./components/auth/RequireRole";
+import GeoRouteBoundary from "./components/ui/GeoRouteBoundary";
 
 const IntroPage = lazy(() => import("./pages/IntroPage"));
 const LandingPage = lazy(() => import("./pages/HomePage"));
 const Login = lazy(() => import("./pages/auth/Login"));
 const StakeholderDashboard = lazy(() => import("./pages/stakeholder/StakeholderDashboard"));
 const EksplorasiPeta = lazy(() => import("./pages/public/EksplorasiPeta"));
-import RequireRole from "./components/auth/RequireRole";
 
 // Halaman & Komponen Alur Operator
 const OperatorLayout = lazy(() => import("./components/operator/OperatorLayout"));
@@ -19,45 +20,16 @@ const OperatorReview = lazy(() => import("./pages/operator/OperatorReview"));
 const OperatorStatus = lazy(() => import("./pages/operator/OperatorStatus"));
 const OperatorIndicator = lazy(() => import("./pages/operator/OperatorIndicator"));
 
-const EditorialIntro = lazy(() => import("./components/ui/AwwwardsLoader"));
-
 export default function App() {
   return <BrowserRouter><AppRoutes /></BrowserRouter>;
 }
 
 function AppRoutes() {
-  const { pathname } = useLocation();
-
-  // Intro hanya muncul saat pertama kali membuka website / masuk ke landing page utama ('/')
-  const [showIntro, setShowIntro] = useState(() => {
-    if (pathname !== "/") return false;
-    try {
-      return sessionStorage.getItem("sadaredu_has_seen_intro") !== "1";
-    } catch {
-      return false;
-    }
-  });
-
-  const handleIntroComplete = () => {
-    try {
-      sessionStorage.setItem("sadaredu_has_seen_intro", "1");
-    } catch {
-      /* abaikan error sessionStorage pada private browsing */
-    }
-    setShowIntro(false);
-  };
-
+  const location = useLocation();
   return (
-    <>
-      {showIntro && (
-        <Suspense fallback={null}>
-          <EditorialIntro onComplete={handleIntroComplete} />
-        </Suspense>
-      )}
-
-      <div className="w-full min-h-screen bg-[#F8FAFC] font-sans text-slate-800 antialiased">
-        <Suspense fallback={<div className="p-6 text-sm text-slate-600" role="status">Memuat halaman...</div>}>
-        <Routes>
+    <GeoRouteBoundary location={location}>
+      {(displayLocation) => (
+        <Routes location={displayLocation}>
           {/* PAGE INTRO KHUSUS (GAYA INSPIRASI USER: AKSES KOTA) */}
           <Route path="/intro" element={<IntroPage />} />
 
@@ -112,8 +84,7 @@ function AppRoutes() {
             }
           />
         </Routes>
-        </Suspense>
-      </div>
-    </>
+      )}
+    </GeoRouteBoundary>
   );
 }

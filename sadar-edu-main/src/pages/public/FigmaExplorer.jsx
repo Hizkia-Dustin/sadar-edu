@@ -1,3 +1,4 @@
+import GeoLoader from '../../components/ui/GeoLoader';
 import { memo, useEffect, useMemo, useState } from 'react';
 import FilterSidebar from '../../components/ui/FilterSidebar';
 import SchoolList from '../../components/ui/SchoolList';
@@ -85,10 +86,10 @@ function LoadingWorkspace() {
   return (
     <>
       <main className="loading-map">
-        <div className="loading-notice"><h2>Menyiapkan data sekolah…</h2><p>Daftar dan peta akan muncul setelah data siap.</p></div>
+        <div className="explorer-map-loading"><GeoLoader label="Menyiapkan data sekolah…" /></div>
       </main>
       <aside className="skeleton-list" aria-label="Daftar sekolah sedang dimuat">
-        {[0, 1, 2, 3].map((item) => <div className="skeleton-row" key={item}><i /><i /><i /></div>)}
+        <GeoLoader label="Memuat daftar sekolah…" />
       </aside>
     </>
   );

@@ -1,3 +1,4 @@
+import GeoLoader from '../ui/GeoLoader';
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../../lib/api";
@@ -55,7 +56,7 @@ export default function AnalisisTab({ stale, onDone }) {
 
       <section className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
         <h2 className="text-sm font-bold text-slate-800 mb-3">Kesiapan data</h2>
-        {!status ? <p className="text-xs text-slate-400">Memuat...</p> : (
+        {!status ? <GeoLoader className="text-xs text-slate-600" label="Memuat kesiapan data…" /> : (
           <ul className="grid sm:grid-cols-2 gap-2">
             {CEK.map(([k, label, wajib]) => {
               const n = status[k];
@@ -80,7 +81,7 @@ export default function AnalisisTab({ stale, onDone }) {
           <input id="rad" type="number" min="0.5" max="20" step="0.5" className={inputCls} value={radius} onChange={(e) => setRadius(e.target.value)} />
         </div>
         <ErrorBox message={error} onClose={() => setError("")} />
-        <button className={btnPrimary} disabled={busy} onClick={hitung}>{busy ? "Menghitung (bisa beberapa detik)..." : "Hitung ulang sekarang"}</button>
+        <button className={btnPrimary} disabled={busy} onClick={hitung}>{busy ? <GeoLoader label="Menghitung indikator…" /> : "Hitung ulang sekarang"}</button>
         {hasil && (
           <p className="text-xs text-emerald-700" role="status">
             Selesai: {hasil.jumlah_wilayah} kecamatan dihitung (tahun {hasil.tahun}, radius {hasil.radius_km} km). <Link to="/stakeholder/dashboard" className="underline font-semibold">Buka dashboard analisis →</Link>

@@ -1,3 +1,4 @@
+import GeoLoader from '../ui/GeoLoader';
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { api } from "../../lib/api";
 import { useDataStore } from "../../store/useDataStore";
@@ -211,7 +212,7 @@ export default function SimulasiPanel({ preset, wilayahId }) {
 
           <ErrorBox message={error} onClose={() => setError("")} />
           <button className={`${btnPrimary} w-full`} disabled={!form.id_wilayah || !!busy} onClick={() => jalankan(false)}>
-            {busy === "hitung" ? "Menghitung dampak intervensi..." : "Hitung dampak simulasi"}
+            {busy === "hitung" ? <GeoLoader label="Menghitung dampak intervensi…" /> : "Hitung dampak simulasi"}
           </button>
         </div>
       </section>
@@ -289,7 +290,7 @@ export default function SimulasiPanel({ preset, wilayahId }) {
                 onChange={set("nama")}
               />
               <button className={btnGhost} disabled={!form.nama.trim() || !!busy} onClick={() => jalankan(true)}>
-                {busy === "simpan" ? "..." : "Simpan"}
+                {busy === "simpan" ? <GeoLoader label="Menyimpan…" /> : "Simpan"}
               </button>
             </div>
           ) : (

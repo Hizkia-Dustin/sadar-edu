@@ -1,3 +1,4 @@
+import GeoLoader from '../ui/GeoLoader';
 import { useMemo, useState } from "react";
 import { SlidersHorizontal, ArrowRight } from "lucide-react";
 import { api } from "../../lib/api";
@@ -128,7 +129,7 @@ export default function KandidatPanel({ wilayahId, onSimulasi }) {
             </div>
             <ErrorBox message={error} onClose={() => setError("")} />
             <button className={`${btnPrimary} w-full`} onClick={generate} disabled={busy}>
-              {busy ? "Menganalisis kesesuaian lahan..." : "Hitung ulang area kandidat"}
+              {busy ? <GeoLoader label="Menganalisis kesesuaian lahan…" /> : "Hitung ulang area kandidat"}
             </button>
           </div>
         </details>

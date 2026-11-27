@@ -15,14 +15,14 @@ import {
   TD,
   TH,
   formatTimestamp,
-} from '../../components/operator/ui';
+} from '../../components/operator/Ui';
 
 const STEPS = ['Draf', 'Dikirim', 'Review Dinas', 'Selesai'];
 
 const STEP_STYLE = {
-  done: { card: 'bg-white', circle: 'bg-[#2d8272] text-white', label: 'text-[#173042]' },
-  current: { card: 'bg-[#e8f3f0]', circle: 'bg-[#1b4965] text-white', label: 'text-[#1b4965]' },
-  todo: { card: 'bg-[#f9fafb]', circle: 'bg-[#edf3f6] text-[#445665]', label: 'text-[#445665]' },
+  done: { card: 'bg-white', circle: 'bg-[#2d8272] text-white', label: 'text-[#132a25]' },
+  current: { card: 'bg-[#e8f3f0]', circle: 'bg-[#145646] text-white', label: 'text-[#145646]' },
+  todo: { card: 'bg-[#f7faf8]', circle: 'bg-[#eef4f0] text-[#52605a]', label: 'text-[#52605a]' },
 };
 
 const fileLabel = (fileName) => fileName.replace(/\.[^.]+$/, '');
@@ -96,7 +96,7 @@ export default function OperatorStatus() {
                 className="flex items-center lg:flex-1"
               >
                 <div
-                  className={`flex h-[58px] flex-1 items-center gap-3 rounded-lg border border-[#d7e1e8] px-[11px] ${style.card}`}
+                  className={`flex h-[58px] flex-1 items-center gap-3 rounded-lg border border-[#dde6e0] px-[11px] ${style.card}`}
                 >
                   <span
                     aria-hidden="true"
@@ -111,7 +111,7 @@ export default function OperatorStatus() {
                   <span
                     aria-hidden="true"
                     className={`hidden h-0.5 w-10 shrink-0 lg:block ${
-                      index <= currentStep ? 'bg-[#3fa796]' : 'bg-[#d7e1e8]'
+                      index <= currentStep ? 'bg-[#2f9a75]' : 'bg-[#dde6e0]'
                     }`}
                   />
                 )}
@@ -128,24 +128,24 @@ export default function OperatorStatus() {
             <StatusPill tone={submitted ? 'success' : 'neutral'}>{submitted ? 'Dikirim' : 'Draf'}</StatusPill>
           </div>
 
-          <div className="mt-5 rounded-lg border border-[#d7e1e8] bg-[#e8f3f0] p-[17px]">
+          <div className="mt-5 rounded-lg border border-[#dde6e0] bg-[#e8f3f0] p-[17px]">
             <p className="break-words text-xl font-semibold leading-7">{previewTitle}</p>
-            <p className="mt-1 text-xs leading-[18px] text-[#445665]">{previewNote}</p>
+            <p className="mt-1 text-xs leading-[18px] text-[#52605a]">{previewNote}</p>
           </div>
 
           <dl className="mt-4 grid gap-3 sm:grid-cols-3">
             {metrics.map((metric) => (
               <div
                 key={metric.label}
-                className="flex flex-col-reverse rounded-lg border border-[#d7e1e8] bg-[#f9fafb] p-[15px]"
+                className="flex flex-col-reverse rounded-lg border border-[#dde6e0] bg-[#f7faf8] p-[15px]"
               >
-                <dt className="text-[11px] font-medium leading-4 text-[#445665]">{metric.label}</dt>
+                <dt className="text-[11px] font-medium leading-4 text-[#52605a]">{metric.label}</dt>
                 <dd className="text-[28px] font-bold leading-9">{metric.value}</dd>
               </div>
             ))}
           </dl>
 
-          <div className="mt-4 flex items-start gap-3 rounded-lg border border-[#d7e1e8] bg-[#fff5e3] p-4">
+          <div className="mt-4 flex items-start gap-3 rounded-lg border border-[#dde6e0] bg-[#fff5e3] p-4">
             <TriangleAlert size={18} aria-hidden="true" className="mt-0.5 shrink-0 text-[#85520c]" />
             <p className="text-xs leading-[18px] text-[#85520c]">
               Preview belum mewakili data publik sampai pengajuan disetujui.
@@ -159,20 +159,20 @@ export default function OperatorStatus() {
             {history.map((item, index) => (
               <li key={item.label} className="relative pb-8 pl-[27px] last:pb-0">
                 {index < history.length - 1 && (
-                  <span aria-hidden="true" className="absolute left-[5px] top-4 h-full w-0.5 bg-[#d7e1e8]" />
+                  <span aria-hidden="true" className="absolute left-[5px] top-4 h-full w-0.5 bg-[#dde6e0]" />
                 )}
                 <span
                   aria-hidden="true"
                   className={`absolute left-0 top-1 h-3 w-3 rounded-full ${
-                    item.reached ? 'bg-[#1b4965]' : 'bg-[#c3d0d8]'
+                    item.reached ? 'bg-[#145646]' : 'bg-[#c8d6cd]'
                   }`}
                 />
                 <p className="text-sm font-semibold leading-5">{item.label}</p>
-                <p className="mt-0.5 text-[11px] font-medium leading-4 text-[#445665]">{item.time}</p>
+                <p className="mt-0.5 text-[11px] font-medium leading-4 text-[#52605a]">{item.time}</p>
               </li>
             ))}
           </ol>
-          <p className="mt-5 text-[11px] font-medium leading-4 text-[#445665]">
+          <p className="mt-5 text-[11px] font-medium leading-4 text-[#52605a]">
             Belum terhubung ke server. Keputusan Dinas belum dapat diterima.
           </p>
         </section>
@@ -190,14 +190,14 @@ export default function OperatorStatus() {
 
       {showPreview && summary && (
         <Dialog title="Pratinjau publik" wide onClose={() => setShowPreview(false)}>
-          <p className="mt-1 text-xs leading-[18px] text-[#445665]">
+          <p className="mt-1 text-xs leading-[18px] text-[#52605a]">
             {previewTitle}. Ini draf dan belum mewakili data publik sampai pengajuan disetujui.
           </p>
           <div
             role="region"
             aria-label="Daftar sekolah pratinjau"
             tabIndex={0}
-            className={`mt-4 max-h-[50vh] overflow-auto rounded-lg border border-[#d7e1e8] ${FOCUS}`}
+            className={`mt-4 max-h-[50vh] overflow-auto rounded-lg border border-[#dde6e0] ${FOCUS}`}
           >
             <table className="w-full min-w-[420px] text-left">
               <thead className="sticky top-0">
@@ -221,11 +221,11 @@ export default function OperatorStatus() {
             </table>
           </div>
           {summary.total > summary.rows.length && (
-            <p className="mt-2 text-xs text-[#445665]">
+            <p className="mt-2 text-xs text-[#52605a]">
               Menampilkan {summary.rows.length} dari {summary.total} sekolah.
             </p>
           )}
-          <div className="mt-5 flex justify-end border-t border-[#d7e1e8] pt-4">
+          <div className="mt-5 flex justify-end border-t border-[#dde6e0] pt-4">
             <button type="button" onClick={() => setShowPreview(false)} className={BTN_OUTLINE}>
               Tutup
             </button>

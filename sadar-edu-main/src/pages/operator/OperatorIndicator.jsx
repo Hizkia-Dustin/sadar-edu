@@ -3,7 +3,7 @@ import { Check, ShieldCheck } from 'lucide-react';
 import { useOperatorStore } from '../../store/useOperatorStore';
 import { summarizePreview } from '../../lib/operatorImport';
 import OperatorIndicatorMap from '../../components/operator/OperatorIndicatorMap';
-import { BTN_OUTLINE, CARD, EMPTY, PageHeader, TD, TH } from '../../components/operator/ui';
+import { BTN_OUTLINE, CARD, EMPTY, PageHeader, TD, TH } from '../../components/operator/Ui';
 
 const DEFINITION = [
   { label: 'Nama field', value: 'latitude / longitude' },
@@ -27,6 +27,7 @@ export default function OperatorIndicator() {
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-7">
       <PageHeader
+        art="district"
         eyebrow="Indikator"
         title="Lokasi sekolah"
         description="Definisi, aturan validasi, serta tampilan peta dan daftar."
@@ -50,10 +51,10 @@ export default function OperatorIndicator() {
           <dl className="mt-5 flex flex-col gap-3">
             {DEFINITION.map((item) => (
               <div key={item.label} className="flex flex-col-reverse gap-1.5">
-                <dd className="flex min-h-[42px] items-center rounded-md border border-[#d7e1e8] bg-[#edf3f6] px-[11px] text-xs">
+                <dd className="flex min-h-[42px] items-center rounded-md border border-[#dde6e0] bg-[#eef4f0] px-[11px] text-xs">
                   {item.value}
                 </dd>
-                <dt className="text-[11px] font-medium leading-4 text-[#445665]">{item.label}</dt>
+                <dt className="text-[11px] font-medium leading-4 text-[#52605a]">{item.label}</dt>
               </div>
             ))}
           </dl>
@@ -65,12 +66,12 @@ export default function OperatorIndicator() {
             {QUALITY_RULES.map((rule) => (
               <li
                 key={rule.title}
-                className="flex min-h-[58px] items-center gap-3 rounded-lg border border-[#d7e1e8] bg-[#f9fafb] px-[11px] py-2"
+                className="flex min-h-[58px] items-center gap-3 rounded-lg border border-[#dde6e0] bg-[#f7faf8] px-[11px] py-2"
               >
                 <ShieldCheck size={18} aria-hidden="true" className="shrink-0 text-[#126552]" />
                 <span>
                   <span className="block text-sm font-semibold leading-5">{rule.title}</span>
-                  <span className="block text-[11px] font-medium leading-4 text-[#445665]">{rule.text}</span>
+                  <span className="block text-[11px] font-medium leading-4 text-[#52605a]">{rule.text}</span>
                 </span>
               </li>
             ))}
@@ -83,7 +84,7 @@ export default function OperatorIndicator() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 id="judul-peta" className="text-base font-semibold leading-6">Preview peta</h2>
-              <p className="text-[11px] font-medium leading-4 text-[#445665]">
+              <p className="text-[11px] font-medium leading-4 text-[#52605a]">
                 Peta spasial interaktif &bull; Sebaran sekolah Kabupaten Bogor
               </p>
             </div>
@@ -101,7 +102,7 @@ export default function OperatorIndicator() {
 
         <section aria-labelledby="judul-daftar" className={`${CARD} p-[17px]`}>
           <h2 id="judul-daftar" className="text-base font-semibold leading-6">Tampilan daftar setara</h2>
-          <p className="text-xs leading-[18px] text-[#445665]">
+          <p className="text-xs leading-[18px] text-[#52605a]">
             Klik sekolah bertanda marker untuk fokuskan titik pada peta.
           </p>
 
@@ -121,14 +122,14 @@ export default function OperatorIndicator() {
                       key={`${row.npsn}-${index}`}
                       onClick={() => row.hasMarker && setHighlightedNpsn(row.npsn)}
                       className={`transition-colors ${
-                        row.hasMarker ? 'cursor-pointer hover:bg-[#edf3f6]' : ''
+                        row.hasMarker ? 'cursor-pointer hover:bg-[#eef4f0]' : ''
                       } ${isSelected ? 'bg-[#e8f3f0]' : ''}`}
                     >
                       <td className={`${TD} break-words`}>
                         <span className="font-semibold">{row.name || EMPTY}</span>
                         {row.npsn && <span className="block text-[10px] text-slate-500">NPSN: {row.npsn}</span>}
                       </td>
-                      <td className={`${TD} ${row.hasMarker ? 'text-[#126552] font-semibold' : 'text-[#445665]'}`}>
+                      <td className={`${TD} ${row.hasMarker ? 'text-[#126552] font-semibold' : 'text-[#52605a]'}`}>
                         {row.hasMarker ? 'Ada marker' : 'Tanpa marker'}
                       </td>
                     </tr>
@@ -143,14 +144,14 @@ export default function OperatorIndicator() {
             </tbody>
           </table>
           {summary && summary.total > summary.rows.length && (
-            <p className="mt-2 text-[11px] font-medium leading-4 text-[#445665]">
+            <p className="mt-2 text-[11px] font-medium leading-4 text-[#52605a]">
               Menampilkan {summary.rows.length} dari {summary.total} sekolah draf.
             </p>
           )}
 
-          <div className="mt-4 flex items-center gap-3 rounded-lg border border-[#d7e1e8] bg-[#e8f3f0] p-4">
+          <div className="mt-4 flex items-center gap-3 rounded-lg border border-[#dde6e0] bg-[#e8f3f0] p-4">
             <Check size={18} aria-hidden="true" className="shrink-0 text-[#126552]" />
-            <p className="text-xs leading-[18px] text-[#1b4965]">
+            <p className="text-xs leading-[18px] text-[#145646]">
               Sekolah tanpa koordinat tetap tersimpan di database dan daftar pencarian.
             </p>
           </div>
